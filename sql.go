@@ -7,9 +7,10 @@ import (
 )
 
 type Option struct {
-	WaitCount    int // 等待次数
-	WaitTime     int // 每次等待时间，单位毫秒
-	IsPrimaryKey bool
+	WaitCount    int  // 等待次数
+	WaitTime     int  // 每次等待时间，单位毫秒
+	IsPrimaryKey bool // 是否为主键
+	RetryTime    int  // 重试时间
 }
 type LinkSQLOptionConfig func(*Option)
 
@@ -72,6 +73,8 @@ func (s *Setting) MysqlIsRun(item int, options ...LinkSQLOptionConfig) (int, err
 	// println("==========\r\nMySQL连接中...")
 	wSQLdb, err := s.Link(item)
 	if err != nil {
+		tn := time.Now()
+		s.ConnectFailTime[item] = &tn
 		return -1, err
 	}
 	ii := 0

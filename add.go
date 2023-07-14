@@ -79,6 +79,9 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 		if sqlValList[i] == "(" {
 			continue
 		}
+		if !s.IsRetryConnect(i) {
+			continue
+		}
 		wg.Add(1)
 		reInsert := make(chan int64)
 		reErr := make(chan error)

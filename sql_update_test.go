@@ -7,7 +7,7 @@ import (
 
 func TestUpdateForID(t *testing.T) {
 	t.Log("TestUpdateForID")
-	sqlSetting, err := New(testJsonStr, 1)
+	sqlSetting, err := New(testJsonStr)
 	if err != nil {
 		t.Error("initialization failed:", err)
 		return
@@ -27,7 +27,7 @@ func TestUpdateForID(t *testing.T) {
 
 func TestUpdateForKey(t *testing.T) {
 	t.Log("TestUpdateForKey")
-	sqlSetting, err := New(testJsonStr, 1)
+	sqlSetting, err := New(testJsonStr)
 	if err != nil {
 		t.Error("initialization failed:", err)
 		return

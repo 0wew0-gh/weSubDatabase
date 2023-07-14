@@ -7,9 +7,7 @@ import (
 )
 
 func TestSQLAdd(t *testing.T) {
-	nextAddDBID := 1
-
-	sqlSetting, err := New(testJsonStr, nextAddDBID)
+	sqlSetting, err := New(testJsonStr)
 	if err != nil {
 		t.Error("initialization failed:", err)
 		return

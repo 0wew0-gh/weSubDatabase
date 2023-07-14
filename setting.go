@@ -4,20 +4,23 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/0wew0-gh/simpleEncryption"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type Setting struct {
-	SqlConfigs  []SQLConfig                 //数据库配置
-	DBName      string                      //数据库名
-	NextAddDBID int                         //下一个数据库ID号
-	DBMaxNum    int                         //数据库最大数目
-	LinkNum     int                         //连接数目
-	MaxLink     int                         //最大连接数目
-	MySQLDB     []*MysqlDB                  //数据库连接
-	SEKey       *simpleEncryption.SecretKey // 加密对象
+	SqlConfigs       []SQLConfig                 //数据库配置
+	DBName           string                      //数据库名
+	NextAddDBID      int                         //下一个数据库ID号
+	DBMaxNum         int                         //数据库最大数目
+	LinkNum          int                         //连接数目
+	MaxLink          int                         //最大连接数目
+	MySQLDB          []*MysqlDB                  //数据库连接
+	SEKey            *simpleEncryption.SecretKey //加密对象
+	ConnectAgainTime int                         //重新连接数据库的时间间隔
+	ConnectFailTime  []*time.Time                //上次连接失败的时间, 用于判断是否需要重新连接
 }
 
 type MysqlDB struct {
@@ -26,24 +29,40 @@ type MysqlDB struct {
 	DB     *sql.DB //数据库连接
 }
 
+type NewOptionConfig func(*Option)
+
+func OptionRetryTime(RetryTime int) NewOptionConfig {
+	return func(o *Option) {
+		o.RetryTime = RetryTime
+	}
+}
+
 // ===============
 //
 //	数据库配置
-//	configString	string		配置文件字符串
-//	nextDBID	int		下一个数据库ID号, 从1开始
+//	configString	string			配置文件字符串
+//	options		[]NewOptionConfig	配置
+//		RetryTime	int			重试时间(ms)
 //
-//	返回值1		*Setting	数据库配置对象
-//	返回值2		error		错误信息
+//	返回值1		*Setting		数据库配置对象
+//	返回值2		error			错误信息
 //
 // ===============
 //
 //	Database config
-//	configString	string		Configuration file string
-//	nextDBID	int		Next database ID number, starting from 1
+//	configString	string			Configuration file string
+//	options		[]NewOptionConfig	Configuration
+//		RetryTime	int			Retry time(ms)
 //
-//	Return 1	*Setting	Database configuration object
-//	Return 2	error		Error message
-func New(configString string, nextDBID int) (*Setting, error) {
+//	Return 1	*Setting		Database configuration object
+//	Return 2	error			Error message
+func New(configString string, options ...NewOptionConfig) (*Setting, error) {
+	option := &Option{
+		RetryTime: 60000,
+	}
+	for _, o := range options {
+		o(option)
+	}
 	var setting Setting
 	config, err := GetConfig(configString)
 	if err != nil {
@@ -51,13 +70,15 @@ func New(configString string, nextDBID int) (*Setting, error) {
 	}
 	setting.SqlConfigs = config.Mysql
 	setting.DBName = config.MysqlName
-	setting.NextAddDBID = nextDBID
+	setting.NextAddDBID = 1
 	setting.DBMaxNum = len(setting.SqlConfigs)
 	setting.LinkNum = 0
 	setting.MaxLink = config.MaxLink.MySQL
 	mySQLDBs := []*MysqlDB{}
+	connectFailTime := []*time.Time{}
 	for i := 0; i < setting.MaxLink; i++ {
 		mySQLDBs = append(mySQLDBs, nil)
+		connectFailTime = append(connectFailTime, nil)
 	}
 	setting.MySQLDB = mySQLDBs
 	if config.Contrast.Key != nil {
@@ -67,6 +88,8 @@ func New(configString string, nextDBID int) (*Setting, error) {
 		}
 		setting.SEKey = se
 	}
+	setting.ConnectAgainTime = option.RetryTime
+	setting.ConnectFailTime = connectFailTime
 	return &setting, nil
 }
 
@@ -203,4 +226,32 @@ func (s *Setting) DecryptID(primaryKey string, ids []string) ([]bool, [][]string
 		pwList[dbIint] = append(pwList[dbIint], i)
 	}
 	return dbIList, idList, pwList
+}
+
+// ===============
+//
+//	判断是否可以连接数据库
+//	item		int		需要连接的数据库在配置中的位置
+//
+//	返回值1		bool		是否可以尝试连接
+//
+// ===============
+//
+//	Determine whether the database can be connected
+//	item		int		Location of the database to be
+//						 		connected in the configuration
+//
+//	return 1	bool		Whether to try to connect
+func (s *Setting) IsRetryConnect(item int) bool {
+	if s.ConnectFailTime[item] != nil {
+		tn := time.Now()
+		tend := s.ConnectFailTime[item].Add(time.Millisecond * time.Duration(s.ConnectAgainTime))
+		if tn.After(tend) {
+			s.ConnectFailTime[item] = nil
+			return true
+		} else {
+			return false
+		}
+	}
+	return true
 }

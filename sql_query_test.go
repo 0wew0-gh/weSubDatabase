@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func TestSQLforID(t *testing.T) {
 	t.Log("TestSQLforID")
-	sqlSetting, err := New(testJsonStr, 1)
+	sqlSetting, err := New(testJsonStr)
 	if err != nil {
 		t.Error("initialization failed:", err)
 		return
@@ -27,16 +28,31 @@ func TestSQLforID(t *testing.T) {
 	}
 }
 
+func TestArray(t *testing.T) {
+	tfail, err := time.Parse("2006-01-02 15:04:05", "2023-07-14 15:50:00")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	tn := time.Now().UTC()
+	relyTime := 300000
+	tend := tfail.Add(time.Millisecond * time.Duration(relyTime))
+	fmt.Println(tn)
+	fmt.Println(tfail)
+	fmt.Println(tend)
+	fmt.Println(tfail.Before(tend), tfail.After(tend))
+}
+
 func TestSQLQuery(t *testing.T) {
 	t.Log("TestSQLQuery")
-	sqlSetting, err := New(testJsonStr, 1)
+	sqlSetting, err := New(testJsonStr)
 	if err != nil {
 		t.Error("initialization failed:", err)
 		return
 	}
 
 	println("MySQL Link test")
-	qd, errs := sqlSetting.Query("data", "*", "id", "", "`id` DESC", "", nil)
+	qd, errs := sqlSetting.Query("data", "*", "id", "`time` BETWEEN '2023-07-14 13:54:48' and '2023-07-14 13:54:55'", "`id` DESC", "", nil)
 	if errs != nil {
 		t.Error("MySQL QueryCMD failed:", errs)
 		return
@@ -56,7 +72,7 @@ func TestSQLQuery(t *testing.T) {
 
 func TestQueryLastID(t *testing.T) {
 	t.Log("TestQueryLastID")
-	sqlSetting, err := New(testJsonStr, 1)
+	sqlSetting, err := New(testJsonStr)
 	if err != nil {
 		t.Error("initialization failed:", err)
 		return

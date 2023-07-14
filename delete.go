@@ -39,11 +39,13 @@ func (s *Setting) Delete(table string, forKey string, ids []string, Debug *log.L
 	fmt.Println("=================")
 	var wg sync.WaitGroup
 	for sqlI := 0; sqlI < len(s.SqlConfigs); sqlI++ {
-		wg.Add(1)
-		if !dbIList[sqlI] {
-			wg.Done()
+		if !s.IsRetryConnect(sqlI) {
 			continue
 		}
+		if !dbIList[sqlI] {
+			continue
+		}
+		wg.Add(1)
 		sqlStr := "DELETE FROM `" + table + "` WHERE `" + forKey + "` IN ("
 		where := ""
 		for i := 0; i < len(idList[sqlI]); i++ {

@@ -99,6 +99,9 @@ func (s *Setting) Update(table string, key []string, value [][]string, forKey st
 	}
 	var wg sync.WaitGroup
 	for sqlI := 0; sqlI < len(s.SqlConfigs); sqlI++ {
+		if !s.IsRetryConnect(sqlI) {
+			continue
+		}
 		wg.Add(1)
 		if !dbIList[sqlI] {
 			wg.Done()

@@ -50,6 +50,9 @@ func (s *Setting) QueryID(table string, from string, primaryKey string, ids []st
 		if !dbIList[i] {
 			continue
 		}
+		if !s.IsRetryConnect(i) {
+			continue
+		}
 		wg.Add(1)
 		sqlStr := "SELECT "
 		if from == "" {
@@ -216,6 +219,9 @@ func (s *Setting) Query(table string, from string, primaryKey string, where stri
 	}
 	var wg *sync.WaitGroup = new(sync.WaitGroup)
 	for i := 0; i < len(s.SqlConfigs); i++ {
+		if !s.IsRetryConnect(i) {
+			continue
+		}
 		wg.Add(1)
 		chanQD := make(chan []map[string]string)
 		chanErr := make(chan error)
@@ -325,6 +331,9 @@ func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logge
 	}
 	var wg *sync.WaitGroup = new(sync.WaitGroup)
 	for i := 0; i < len(s.SqlConfigs); i++ {
+		if !s.IsRetryConnect(i) {
+			continue
+		}
 		wg.Add(1)
 		chanQD := make(chan []map[string]string)
 		chanErr := make(chan error)
@@ -382,6 +391,12 @@ func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logge
 	}
 	dbI += 1
 	maxID += 1
+	// 防止连接不上的数据库中存在最大值
+	for i := 0; i < len(s.ConnectFailTime); i++ {
+		if s.ConnectFailTime[i] != nil {
+			maxID += 1
+		}
+	}
 	return dbI, maxID, nil
 }
 

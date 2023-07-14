@@ -7,7 +7,7 @@ import (
 
 func TestDeleteForID(t *testing.T) {
 	t.Log("TestDeleteForID")
-	sqlSetting, err := New(testJsonStr, 1)
+	sqlSetting, err := New(testJsonStr)
 	if err != nil {
 		t.Error("initialization failed:", err)
 		return
@@ -25,7 +25,7 @@ func TestDeleteForID(t *testing.T) {
 
 func TestDeleteForKey(t *testing.T) {
 	t.Log("TestDeleteForKey")
-	sqlSetting, err := New(testJsonStr, 1)
+	sqlSetting, err := New(testJsonStr)
 	if err != nil {
 		t.Error("initialization failed:", err)
 		return
