@@ -76,6 +76,9 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 	}
 	var wg *sync.WaitGroup = new(sync.WaitGroup)
 	for i := 0; i < len(sqlValList); i++ {
+		if sqlValList[i] == "(" {
+			continue
+		}
 		wg.Add(1)
 		reInsert := make(chan int64)
 		reErr := make(chan error)

@@ -373,17 +373,15 @@ func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logge
 			return -1, 1, err
 		}
 		if id > maxID {
-			maxID = id + 1
+			maxID = id
 			dbI = i + 1
 			if dbI >= len(s.SqlConfigs) {
 				dbI = 0
 			}
-			dbI += 1
 		}
 	}
-	if dbI == 0 {
-		dbI = 1
-	}
+	dbI += 1
+	maxID += 1
 	return dbI, maxID, nil
 }
 
