@@ -1,0 +1,47 @@
+package weSubDatabase
+
+import (
+	"fmt"
+	"strconv"
+	"testing"
+)
+
+func TestSQLAdd(t *testing.T) {
+	nextAddDBID := 1
+
+	sqlSetting, err := New(testJsonStr, nextAddDBID)
+	if err != nil {
+		t.Error("initialization failed:", err)
+		return
+	}
+
+	println("MySQL Link test")
+	mI, err := sqlSetting.MysqlIsRun(0)
+	if err != nil {
+		t.Error("MySQL Link failed:", err)
+		return
+	}
+	sqlSetting.MysqlClose(mI)
+	println("MySQL test link success")
+
+	nextDBI, nextID, err := sqlSetting.SelectLastID("data", "id", nil)
+	if err != nil {
+		t.Error("MySQL Link failed:", err)
+		return
+	}
+	sqlSetting.NextAddDBID = nextDBI
+	println("NextAddDBID:", nextDBI, "maxID:", nextID)
+
+	values := [][]string{}
+	for i := nextID; i < nextID+9; i++ {
+		values = append(values, []string{strconv.Itoa(i), fmt.Sprintf("测试%d", i)})
+	}
+	inserts, errs := sqlSetting.Add("data", []string{"id", "data"}, values, nil)
+	if errs != nil {
+		t.Error("Add failed:", errs)
+		return
+	}
+	fmt.Println("inserts:", inserts)
+
+	fmt.Println(sqlSetting.MySQLDB)
+}
