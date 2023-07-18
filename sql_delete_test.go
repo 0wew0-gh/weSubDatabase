@@ -33,7 +33,7 @@ func TestDeleteForKey(t *testing.T) {
 	var (
 		id []string = []string{"测试1", "测试4", "测试5"} // []string{"2", "6"}
 	)
-	rowsAffected, errs := sqlSetting.Delete("data", "data", id, nil, OptionIsPrimaryKey(false))
+	rowsAffected, errs := sqlSetting.Delete("data", "data", id, nil, OIPKIsPrimaryKey(false))
 	if errs != nil {
 		t.Error(errs)
 		return

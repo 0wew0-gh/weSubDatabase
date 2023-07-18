@@ -40,14 +40,14 @@ func Parse(jsonStr string) (*wJson, error) {
 // ===============
 //
 //	获取json中的值
-//	key	string	需要获取的key
+//	key	string		需要获取的key
 //
 //	返回值1	interface{}	获取到的值
 //
 //	==============
 //
 //	Get the value in json
-//	key	string	key
+//	key	string		key
 //
 //	return1	interface{}	value
 func (w *wJson) Get(key string) interface{} {
@@ -80,7 +80,7 @@ func (w *wJson) Exists() bool {
 //
 // ==============
 //
-//	Return the string form of the value obtained after the last call to the Get() method
+//	return the string form of the value obtained after the last call to the Get() method
 //
 //	return1	string	string form of the value obtained
 func (w *wJson) String() string {
@@ -194,7 +194,8 @@ func GetSQLConfig(config string) (*SQLConfig, error) {
 //	Parse MySQL configuration from dictionary
 //	configMap	map[string]interface{}	dictionary
 //
-//	return1		*SQLConfig		parsed MySQL configuration object
+//	return1		*SQLConfig		parsed MySQL configuration
+//											object
 func GetSQLConfigMap(configMap map[string]interface{}) *SQLConfig {
 	var sqlConfig SQLConfig
 	temp := configMap["mysql_user"]

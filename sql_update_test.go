@@ -37,7 +37,7 @@ func TestUpdateForKey(t *testing.T) {
 		value [][]string = [][]string{{"测试7", "测试8", "测试3"}, {"2023-07-12 17:12:17", "2023-07-12 17:12:18", "2023-07-12 17:12:13"}}
 		id    []string   = []string{"2023-07-12 17:12:07", "2023-07-12 17:12:08", "2023-07-12 17:12:03"} // []string{"2", "6"}
 	)
-	rowsAffected, errs := sqlSetting.Update("data", key, value, "time", id, nil, OptionIsPrimaryKey(false))
+	rowsAffected, errs := sqlSetting.Update("data", key, value, "time", id, nil, OIPKIsPrimaryKey(false))
 	if errs != nil {
 		t.Error(errs)
 		return

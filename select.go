@@ -20,6 +20,8 @@ import (
 //	ids		[]string		加密后的主键
 //	order		string			排序
 //	Debug		*log.Logger		调试输出
+//	options		[]IsShowPrintO		配置
+//		IsShowPrint	bool			是否输出到控制台
 //
 //	返回值1		[]map[string]string	查询到的数据
 //	返回值2		[]error			错误信息
@@ -33,10 +35,20 @@ import (
 //	ids		[]string		encrypted primary key
 //	order		string			sort
 //	Debug		*log.Logger		debug output
+//	options		[]IsShowPrintO		Configuration
+//		IsShowPrint	bool			Whether to output to the
+//											console
+//
 //
 //	return 1	[]map[string]string	query data
 //	return 2	[]error			error message
-func (s *Setting) QueryID(table string, from string, primaryKey string, ids []string, order string, Debug *log.Logger) ([]map[string]string, []error) {
+func (s *Setting) QueryID(table string, from string, primaryKey string, ids []string, order string, Debug *log.Logger, options ...IsShowPrintO) ([]map[string]string, []error) {
+	option := &Option{
+		IsShowPrint: false,
+	}
+	for _, o := range options {
+		o(option)
+	}
 	dbIList, idList, _ := s.DecryptID(primaryKey, ids)
 	var (
 		queryDatas []map[string]string
@@ -67,7 +79,7 @@ func (s *Setting) QueryID(table string, from string, primaryKey string, ids []st
 		}
 		chanQD := make(chan []map[string]string)
 		chanErr := make(chan error)
-		go s.go_query(i, sqlStr, chanQD, chanErr, Debug)
+		go s.go_query(i, sqlStr, chanQD, chanErr, option.IsShowPrint, Debug)
 		rI := false
 		rE := false
 		for {
@@ -96,11 +108,6 @@ func (s *Setting) QueryID(table string, from string, primaryKey string, ids []st
 		wg.Done()
 	}
 	wg.Wait()
-	for _, v := range errs {
-		if v != nil {
-			return nil, errs
-		}
-	}
 	orderKey := "id"
 	orderSort := "ASC"
 	if order != "" {
@@ -147,6 +154,11 @@ func (s *Setting) QueryID(table string, from string, primaryKey string, ids []st
 		}
 	})
 	queryDatas = s.EncryptPrimaryKey(queryDatas, primaryKey)
+	for _, v := range errs {
+		if v != nil {
+			return queryDatas, errs
+		}
+	}
 	return queryDatas, nil
 }
 
@@ -163,6 +175,8 @@ func (s *Setting) QueryID(table string, from string, primaryKey string, ids []st
 //	limit		string			分页
 //											""为默认值100
 //	Debug		*log.Logger		调试日志对象
+//	options		[]IsShowPrintO		配置
+//		IsShowPrint	bool			是否输出到控制台
 //
 //	返回值1		[]map[string]string	查询结果
 //	返回值2		[]error			错误信息
@@ -180,10 +194,19 @@ func (s *Setting) QueryID(table string, from string, primaryKey string, ids []st
 //	limit		string			Paging
 //											"" is the default value 100
 //	Debug		*log.Logger		Debug log object
+//	options		[]IsShowPrintO		Configuration
+//		IsShowPrint	bool			Whether to output to the
+//											console
 //
-//	Return 1	[]map[string]string	Query result
-//	Return 2	[]error			Error message
-func (s *Setting) Query(table string, from string, primaryKey string, where string, order string, limit string, Debug *log.Logger) ([]map[string]string, []error) {
+//	return 1	[]map[string]string	Query result
+//	return 2	[]error			Error message
+func (s *Setting) Query(table string, from string, primaryKey string, where string, order string, limit string, Debug *log.Logger, options ...IsShowPrintO) ([]map[string]string, []error) {
+	option := &Option{
+		IsShowPrint: false,
+	}
+	for _, o := range options {
+		o(option)
+	}
 	sqlStr := "SELECT "
 	if from != "" {
 		sqlStr += from + " FROM "
@@ -205,27 +228,47 @@ func (s *Setting) Query(table string, from string, primaryKey string, where stri
 		orderKey = strings.ReplaceAll(os[0], "`", "")
 		orderSort = os[1]
 	}
-	if limit != "" {
-		sqlStr += " LIMIT " + limit
-	} else {
-		sqlStr += " LIMIT 100"
+
+	var isContinues []bool
+	for i := 0; i < len(s.ConnectFailTime); i++ {
+		isContinues = append(isContinues, s.IsRetryConnect(i))
 	}
+
+	if limit == "" {
+		limit = "100"
+	}
+
+	limitList := []string{}
+	limit = strings.ReplaceAll(limit, " ", "")
+	ls := strings.Split(limit, ",")
+	if len(ls) >= 2 {
+		i, err := strconv.Atoi(ls[1])
+		if err == nil {
+			limitList = toLimit(s.NextDBID, ls[0], i, isContinues)
+		}
+	} else {
+		i, err := strconv.Atoi(limit)
+		if err == nil {
+			limitList = toLimit(s.NextDBID, "", i, isContinues)
+		}
+	}
+
 	var (
 		queryDatas []map[string]string
 		errs       []error
 	)
-	for i := 0; i < len(s.SqlConfigs); i++ {
-		errs = append(errs, nil)
-	}
 	var wg *sync.WaitGroup = new(sync.WaitGroup)
 	for i := 0; i < len(s.SqlConfigs); i++ {
 		if !s.IsRetryConnect(i) {
 			continue
 		}
+		if !isContinues[i] {
+			continue
+		}
 		wg.Add(1)
 		chanQD := make(chan []map[string]string)
 		chanErr := make(chan error)
-		go s.go_query(i, sqlStr, chanQD, chanErr, Debug)
+		go s.go_query(i, sqlStr+" LIMIT "+limitList[i], chanQD, chanErr, option.IsShowPrint, Debug)
 		rI := false
 		rE := false
 		for {
@@ -254,11 +297,6 @@ func (s *Setting) Query(table string, from string, primaryKey string, where stri
 		wg.Done()
 	}
 	wg.Wait()
-	for _, v := range errs {
-		if v != nil {
-			return nil, errs
-		}
-	}
 	sort.Slice(queryDatas, func(i, j int) bool {
 		switch orderKey {
 		case "id":
@@ -295,6 +333,11 @@ func (s *Setting) Query(table string, from string, primaryKey string, where stri
 		}
 	})
 	queryDatas = s.EncryptPrimaryKey(queryDatas, primaryKey)
+	for _, v := range errs {
+		if v != nil {
+			return queryDatas, errs
+		}
+	}
 	return queryDatas, nil
 }
 
@@ -304,6 +347,8 @@ func (s *Setting) Query(table string, from string, primaryKey string, where stri
 //	table		string		表名
 //	primaryKey	string		主键名,主键类型必须为数字类型
 //	Debug		*log.Logger	Debug 日志对象
+//	options		[]IsShowPrintO	配置
+//		IsShowPrint	bool		是否输出到控制台
 //
 //	返回值1		int		下一条数据所在的数据库索引
 //	返回值2		int		下一条数据的 ID
@@ -316,11 +361,21 @@ func (s *Setting) Query(table string, from string, primaryKey string, where stri
 //	primaryKey	string		primary key name,The primary key
 //									type must be a numeric type
 //	Debug		*log.Logger	Debug log object
+//	options		[]IsShowPrintO	Configuration
+//		IsShowPrint	bool		Whether to output to the
+//									console
 //
-//	return 1	int		The database index where the next data is located
+//	return 1	int		The database index where the next
+//									data is located
 //	return 2	int		ID of the next data
 //	return 3	error		Error message
-func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logger) (int, int, error) {
+func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logger, options ...IsShowPrintO) (int, int, error) {
+	option := &Option{
+		IsShowPrint: false,
+	}
+	for _, o := range options {
+		o(option)
+	}
 	sqlStr := "SELECT MAX(`" + primaryKey + "`) FROM `" + table + "`"
 	var (
 		queryDatas []map[string]string
@@ -337,7 +392,7 @@ func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logge
 		wg.Add(1)
 		chanQD := make(chan []map[string]string)
 		chanErr := make(chan error)
-		go s.go_query(i, sqlStr, chanQD, chanErr, Debug)
+		go s.go_query(i, sqlStr, chanQD, chanErr, option.IsShowPrint, Debug)
 		rI := false
 		rE := false
 		for {
@@ -366,14 +421,9 @@ func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logge
 		wg.Done()
 	}
 	wg.Wait()
-	for _, v := range errs {
-		if v != nil {
-			return -1, 1, v
-		}
-	}
 	var maxID int
 	var dbI int
-	for i, v := range queryDatas {
+	for _, v := range queryDatas {
 		if v["MAX(`"+primaryKey+"`)"] == "" {
 			continue
 		}
@@ -383,10 +433,13 @@ func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logge
 		}
 		if id > maxID {
 			maxID = id
-			dbI = i + 1
-			if dbI >= len(s.SqlConfigs) {
-				dbI = 0
-			}
+		}
+		db, err := strconv.Atoi(v["db"])
+		if err != nil {
+			return -1, 1, err
+		}
+		if db > dbI {
+			dbI = db
 		}
 	}
 	dbI += 1
@@ -395,6 +448,11 @@ func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logge
 	for i := 0; i < len(s.ConnectFailTime); i++ {
 		if s.ConnectFailTime[i] != nil {
 			maxID += 1
+		}
+	}
+	for _, v := range errs {
+		if v != nil {
+			return dbI, maxID, v
 		}
 	}
 	return dbI, maxID, nil
@@ -406,17 +464,17 @@ func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logge
 //	query		*sql.Rows		查询结果
 //	Debug		*log.Logger		Debug 日志对象
 //
-//	返回值1		[]map[string]string		查询结果
-//	返回值2		error				错误信息
+//	返回值1		[]map[string]string	查询结果
+//	返回值2		error			错误信息
 //
 // ===============
 //
 //	handle query data
 //	query		*sql.Rows		query result
-//	Debug		*log.Logger	Debug log object
+//	Debug		*log.Logger		Debug log object
 //
-//	return 1	[]map[string]string		query result
-//	return 2	error				error message
+//	return 1	[]map[string]string	query result
+//	return 2	error			error message
 func handleQD(query *sql.Rows, Debug *log.Logger) ([]map[string]string, error) {
 	//读出查询出的列字段名
 	cols, _ := query.Columns()

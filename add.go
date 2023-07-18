@@ -10,13 +10,15 @@ import (
 // ===============
 //
 //	自动根据 *Setting 向下一个数据库中的指定表添加数据
-//	table	string	表名
-//	keys	[]string	键名
-//	values	[][]string	值
-//	Debug	*log.Logger	调试输出
+//	table		string		表名
+//	keys		[]string	键名
+//	values		[][]string	值
+//	Debug		*log.Logger	调试输出
+//	options		[]IsShowPrintO	配置
+//		IsShowPrint	bool		是否输出到控制台
 //
-//	返回值1	[]int64		插入的行数
-//	返回值2	[]error		错误信息
+//	返回值1		[]int64		插入的行数
+//	返回值2		[]error		错误信息
 //
 // ===============
 //
@@ -25,12 +27,24 @@ import (
 //	keys		[]string	key name
 //	values		[][]string	value
 //	Debug		*log.Logger	debug output
+//	options		[]IsShowPrintO	Configuration
+//		IsShowPrint	bool		Whether to output to the console
 //
 //	return 1	[]int64		Number of rows inserted
 //	return 2	[]error		Error message
-func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log.Logger) ([]int64, []error) {
+func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log.Logger, options ...IsShowPrintO) ([]int64, []error) {
+	option := &Option{
+		IsShowPrint: false,
+	}
+	for _, o := range options {
+		o(option)
+	}
 	sqlKeys := ""
 	sqlValList := []string{}
+	var isContinues []bool
+	for i := 0; i < len(s.ConnectFailTime); i++ {
+		isContinues = append(isContinues, s.IsRetryConnect(i))
+	}
 	for i := 0; i < len(values); i++ {
 		val := values[i]
 		if len(keys) != len(val) {
@@ -43,7 +57,15 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 			}
 			sqlVal += "'" + val[i] + "'"
 		}
-		sqlI := s.NextAddDBID - 1
+		sqlI := s.NextDBID - 1
+		s.NextDBID++
+		if s.NextDBID > s.DBMaxNum {
+			s.NextDBID = 1
+		}
+		if !isContinues[sqlI] {
+			i--
+			continue
+		}
 		if sqlI >= len(sqlValList) {
 			temp := sqlI - len(sqlValList) + 1
 			for i := 0; i < temp; i++ {
@@ -54,10 +76,6 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 			sqlValList[sqlI] += ",("
 		}
 		sqlValList[sqlI] += sqlVal + ")"
-		s.NextAddDBID++
-		if s.NextAddDBID > s.DBMaxNum {
-			s.NextAddDBID = 1
-		}
 	}
 	for i := 0; i < len(keys); i++ {
 		if sqlKeys != "" {
@@ -79,14 +97,14 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 		if sqlValList[i] == "(" {
 			continue
 		}
-		if !s.IsRetryConnect(i) {
+		if !isContinues[i] {
 			continue
 		}
 		wg.Add(1)
 		reInsert := make(chan int64)
 		reErr := make(chan error)
 		sqlStr := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES %s", table, sqlKeys, sqlValList[i])
-		go s.go_add(i, sqlStr, reInsert, reErr, Debug)
+		go s.go_add(i, sqlStr, reInsert, reErr, option.IsShowPrint, Debug)
 		rI := false
 		rE := false
 		for {
@@ -120,16 +138,16 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 	return inserts, nil
 }
 
-func (s *Setting) go_add(i int, sqlStr string, reInsert chan<- int64, reErr chan<- error, Debug *log.Logger) {
-	mI, err := s.MysqlIsRun(i)
+func (s *Setting) go_add(i int, sqlStr string, reInsert chan<- int64, reErr chan<- error, IsShowPrint bool, Debug *log.Logger) {
+	mI, err := s.MysqlIsRun(i, OLIsShowPrint(IsShowPrint))
 	if err != nil {
 		s.MysqlClose(mI)
 		reInsert <- -1
 		reErr <- err
 		return
 	}
-	lastInsertId, _, err := s.MySQLDB[mI].ExecCMD(sqlStr, Debug)
-	s.MysqlClose(mI)
+	lastInsertId, _, err := s.MySQLDB[mI].ExecCMD(sqlStr, Debug, OIsShowPrint(IsShowPrint))
+	s.MysqlClose(mI, OIsShowPrint(IsShowPrint))
 	if err != nil {
 		reInsert <- lastInsertId
 		reErr <- err
@@ -137,32 +155,4 @@ func (s *Setting) go_add(i int, sqlStr string, reInsert chan<- int64, reErr chan
 	}
 	reInsert <- lastInsertId
 	reErr <- err
-}
-
-// ===============
-//
-//	添加数据
-//	table	string		表名
-//	keys	string		键名
-//	values	string		值
-//	Debug	*log.Logger	调试输出
-//
-//	返回值1	int64		最后插入的id
-//	返回值2	error		错误信息
-//
-// ===============
-//
-//	Add data
-//	table		string		table name
-//	keys		string		key name
-//	values		string		value
-//	Debug		*log.Logger	debug output
-//
-//	return 1	int64		last insert id
-//	return 2	error		Error message
-func (s *MysqlDB) AddRecord(table string, keys string, values string, Debug *log.Logger) (int64, error) {
-	sqlStr := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES %s", table, keys, values)
-
-	id, _, err := s.ExecCMD(sqlStr, Debug)
-	return id, err
 }

@@ -3,6 +3,7 @@ package weSubDatabase
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -11,27 +12,78 @@ import (
 )
 
 type Setting struct {
-	SqlConfigs       []SQLConfig                 //数据库配置
-	DBName           string                      //数据库名
-	NextAddDBID      int                         //下一个数据库ID号
-	DBMaxNum         int                         //数据库最大数目
-	LinkNum          int                         //连接数目
-	MaxLink          int                         //最大连接数目
-	MySQLDB          []*MysqlDB                  //数据库连接
-	SEKey            *simpleEncryption.SecretKey //加密对象
-	ConnectAgainTime int                         //重新连接数据库的时间间隔
-	ConnectFailTime  []*time.Time                //上次连接失败的时间, 用于判断是否需要重新连接
+	//	数据库配置
+	//
+	//	Database configuration
+	SqlConfigs []SQLConfig
+	//	数据库名
+	//
+	//	Database name
+	DBName string
+	//	下一个数据库ID号,起始为1
+	//
+	//	Next database ID number, starting at 1
+	NextDBID int
+	//	数据库最大数目
+	//
+	//	Maximum number of databases
+	DBMaxNum int
+	//	连接数目
+	//
+	//	Number of connections
+	LinkNum int
+	//	最大连接数目
+	//
+	//	Maximum number of connections
+	MaxLink int
+	//	数据库连接
+	//
+	//	Database connection
+	MySQLDB []*MysqlDB
+	//	加密对象
+	//
+	//	Encryption object
+	SEKey *simpleEncryption.SecretKey
+	//	重新连接数据库的时间间隔
+	//
+	//	Time interval for reconnecting to the database
+	ConnectAgainTime int
+	//	上次连接失败的时间, 用于判断是否需要重新连接
+	//
+	//	The last time the connection failed, used to determine whether to reconnect
+	ConnectFailTime []*time.Time
 }
 
 type MysqlDB struct {
-	Name   string  //数据库名
-	DBItem int     //当前连接的数据库在配置中的位置
-	DB     *sql.DB //数据库连接
+	//	数据库名
+	//
+	//	Database name
+	Name string
+	//	当前连接的数据库在配置中的位置
+	//
+	//	The location of the currently connected database in the configuration
+	DBItem int
+	//	数据库连接
+	//
+	//	Database connection
+	DB *sql.DB
 }
 
-type NewOptionConfig func(*Option)
+// 重试时间的可选配置
+//
+// Optional configuration of retry time
+type RetryTimeO func(*Option)
 
-func OptionRetryTime(RetryTime int) NewOptionConfig {
+// ===============
+//
+//	设置重试时间
+//	RetryTime	int	重试等待时间(ms)
+//
+// ===============
+//
+//	Set retry time
+//	RetryTime	int	Retry wait time(ms)
+func OptionRetryTime(RetryTime int) RetryTimeO {
 	return func(o *Option) {
 		o.RetryTime = RetryTime
 	}
@@ -41,7 +93,7 @@ func OptionRetryTime(RetryTime int) NewOptionConfig {
 //
 //	数据库配置
 //	configString	string			配置文件字符串
-//	options		[]NewOptionConfig	配置
+//	options		[]RetryTimeO	配置
 //		RetryTime	int			重试时间(ms)
 //
 //	返回值1		*Setting		数据库配置对象
@@ -51,12 +103,12 @@ func OptionRetryTime(RetryTime int) NewOptionConfig {
 //
 //	Database config
 //	configString	string			Configuration file string
-//	options		[]NewOptionConfig	Configuration
+//	options		[]RetryTimeO	Configuration
 //		RetryTime	int			Retry time(ms)
 //
-//	Return 1	*Setting		Database configuration object
-//	Return 2	error			Error message
-func New(configString string, options ...NewOptionConfig) (*Setting, error) {
+//	return 1	*Setting		Database configuration object
+//	return 2	error			Error message
+func New(configString string, options ...RetryTimeO) (*Setting, error) {
 	option := &Option{
 		RetryTime: 60000,
 	}
@@ -70,7 +122,7 @@ func New(configString string, options ...NewOptionConfig) (*Setting, error) {
 	}
 	setting.SqlConfigs = config.Mysql
 	setting.DBName = config.MysqlName
-	setting.NextAddDBID = 1
+	setting.NextDBID = 1
 	setting.DBMaxNum = len(setting.SqlConfigs)
 	setting.LinkNum = 0
 	setting.MaxLink = config.MaxLink.MySQL
@@ -78,6 +130,8 @@ func New(configString string, options ...NewOptionConfig) (*Setting, error) {
 	connectFailTime := []*time.Time{}
 	for i := 0; i < setting.MaxLink; i++ {
 		mySQLDBs = append(mySQLDBs, nil)
+	}
+	for i := 0; i < len(setting.SqlConfigs); i++ {
 		connectFailTime = append(connectFailTime, nil)
 	}
 	setting.MySQLDB = mySQLDBs
@@ -105,8 +159,8 @@ func New(configString string, options ...NewOptionConfig) (*Setting, error) {
 //	Connect to MySQL database
 //	item		int		Location of the database to be
 //						 		connected in the configuration
-//	Return 1	*MysqlDB	Location in the connection pool
-//	Return 2	error		Error message
+//	return 1	*MysqlDB	Location in the connection pool
+//	return 2	error		Error message
 func (s *Setting) Link(item int) (*MysqlDB, error) {
 	if s.SqlConfigs == nil || len(s.SqlConfigs) == 0 {
 		return nil, fmt.Errorf("MySQL Open Error: %s", "配置为空")
@@ -185,22 +239,25 @@ func (s *Setting) EncryptPrimaryKey(queryDatas []map[string]string, primaryKey s
 // ===============
 //
 //	根据主键和id数组解密出数据库ID和主键ID
-//	primaryKey	string			主键字段名
-//	ids		[]string		主键ID数组
+//	primaryKey	string		主键字段名
+//	ids		[]string	主键ID数组
 //
-//	返回值1		[]string		数据库ID数组
-//	返回值2		[]string		主键ID数组
-//	返回值3		[]int			主键ID原数组中的位置
+//	返回值1		[]bool		解密出的ID是否有对应的数据库
+//	返回值2		[][]string	解密出的数据库ID
+//	返回值3		[][]int		解密出的主键ID在原数组中的位置
 //
 // ===============
 //
 //	Decrypt the database ID and primary key ID based on the primary key and ID array
-//	primaryKey	string			primary key field name
-//	ids		[]string		primary key ID array
+//	primaryKey	string		primary key field name
+//	ids		[]string	primary key ID array
 //
-//	return 1	[]string		database ID array
-//	return 2	[]string		primary key ID array
-//	return 3	[]int			Position in the original array of primary key IDs
+//	return 1	[]bool		Whether the decrypted ID has a
+//									corresponding database
+//	return 2	[][]string	Decrypted database ID
+//	return 3	[][]int		The position of the decrypted
+//									primary key ID in the original
+//									array
 func (s *Setting) DecryptID(primaryKey string, ids []string) ([]bool, [][]string, [][]int) {
 	var (
 		dbIList []bool     = []bool{}
@@ -254,4 +311,76 @@ func (s *Setting) IsRetryConnect(item int) bool {
 		}
 	}
 	return true
+}
+
+// ===============
+//
+//	根据下一个数据库ID和限制数目生成限制字符串
+//	nextDBID	int		下一个数据库ID
+//	pageNumber	string		页码
+//	limit		int		限制数目
+//	isContinues	[]bool		是否可以连接数据库
+//
+//	返回值		[]string	限制字符串数组
+//
+// ===============
+//
+//	Generate limit string based on next database ID and limit number
+//	nextDBID	int		Next database ID
+//	pageNumber	string		Page number
+//	limit		int		Limit number
+//	isContinues	[]bool		Whether the database can be connected
+//
+//	return		[]string	Limit string array
+func toLimit(nextDBID int, pageNumber string, limit int, isContinues []bool) []string {
+	if limit <= 0 {
+		return nil
+	}
+	limitList := []string{}
+	linkDBCount := 0
+	for i := 0; i < len(isContinues); i++ {
+		limitList = append(limitList, "")
+		if isContinues[i] {
+			linkDBCount += 1
+		}
+	}
+	if nextDBID > linkDBCount {
+		return nil
+	}
+	nextDBID -= 1
+	maxDBNum := len(isContinues)
+	f := math.Floor(float64(limit) / float64(linkDBCount))
+	remainder := limit % linkDBCount
+	ii := 0
+	for i := nextDBID; i < maxDBNum; i++ {
+		if !isContinues[i] {
+			if i+1 >= maxDBNum {
+				i = -1
+			}
+			ii++
+			if ii >= maxDBNum {
+				break
+			}
+			continue
+		}
+		limit := ""
+		if pageNumber != "" {
+			limit = pageNumber + ","
+		}
+		if remainder > 0 {
+			limit += fmt.Sprintf("%d", int(f)+1)
+			remainder -= 1
+		} else {
+			limit += fmt.Sprintf("%d", int(f))
+		}
+		limitList[i] = limit
+		if i+1 >= maxDBNum {
+			i = -1
+		}
+		ii++
+		if ii >= maxDBNum {
+			break
+		}
+	}
+	return limitList
 }

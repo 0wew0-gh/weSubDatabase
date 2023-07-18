@@ -7,14 +7,6 @@ import (
 	"time"
 )
 
-type UpdateOptionConfig func(*Option)
-
-func OptionIsPrimaryKey(IsPrimaryKey bool) UpdateOptionConfig {
-	return func(o *Option) {
-		o.IsPrimaryKey = IsPrimaryKey
-	}
-}
-
 // ===============
 //
 //	更新数据
@@ -26,6 +18,7 @@ func OptionIsPrimaryKey(IsPrimaryKey bool) UpdateOptionConfig {
 //	Debug			*log.Logger		调试输出
 //	options			[]UpdateOptionConfig	配置
 //		IsPrimaryKey	bool			是否使用主键
+//		IsShowPrint		bool			是否输出到控制台
 //
 //	返回值1			[]int64			更新的行数
 //	返回值2			error			错误信息
@@ -42,13 +35,16 @@ func OptionIsPrimaryKey(IsPrimaryKey bool) UpdateOptionConfig {
 //	options			[]UpdateOptionConfig	Configuration
 //		IsPrimaryKey	bool			Whether to use the
 //													primary key
+//		IsShowPrint		bool			Whether to output
+//													to the console
 //
 //	return 1		[]int64			Number of rows
 //													updated
 //	return 2		error			Error message
-func (s *Setting) Update(table string, key []string, value [][]string, forKey string, ids []string, Debug *log.Logger, options ...UpdateOptionConfig) ([]int64, []error) {
+func (s *Setting) Update(table string, key []string, value [][]string, forKey string, ids []string, Debug *log.Logger, options ...IsPrimaryKeyO) ([]int64, []error) {
 	option := &Option{
 		IsPrimaryKey: true,
+		IsShowPrint:  false,
 	}
 	for _, o := range options {
 		o(option)
@@ -143,7 +139,7 @@ func (s *Setting) Update(table string, key []string, value [][]string, forKey st
 
 		chanRA := make(chan int64)
 		chanErr := make(chan error)
-		go s.go_exec(sqlI, sqlStr, nil, chanRA, chanErr, Debug)
+		go s.go_exec(sqlI, sqlStr, nil, chanRA, chanErr, option.IsShowPrint, Debug)
 		rRA := false
 		rE := false
 		for {

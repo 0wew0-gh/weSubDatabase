@@ -7,19 +7,58 @@ import (
 )
 
 type Option struct {
-	WaitCount    int  // 等待次数
-	WaitTime     int  // 每次等待时间，单位毫秒
-	IsPrimaryKey bool // 是否为主键
-	RetryTime    int  // 重试时间
+	//	等待次数
+	//
+	//	Number of waits
+	WaitCount int
+	//	每次等待时间，单位毫秒
+	//
+	//	Waiting time per time, in milliseconds
+	WaitTime int
+	//	是否为主键
+	//
+	//	Whether it is a primary key
+	IsPrimaryKey bool
+	//	重试时间
+	//
+	//	Retry time
+	RetryTime int
+	//	是否输出到控制台
+	//
+	//	Whether to output to the console
+	IsShowPrint bool
 }
-type LinkSQLOptionConfig func(*Option)
 
-func OptionWaitCount(WaitCount int) LinkSQLOptionConfig {
+// 连接MySQL时的可选配置
+//
+// Optional configuration when connecting to MySQL
+type LinkSQLO func(*Option)
+
+// ===============
+//
+//	设置等待次数
+//	WaitCount	int	等待次数
+//
+// ===============
+//
+//	Set the number of waits
+//	WaitCount	int	Number of waits
+func OLWaitCount(WaitCount int) LinkSQLO {
 	return func(o *Option) {
 		o.WaitCount = WaitCount
 	}
 }
-func OptionWaitTime(WaitTime int) LinkSQLOptionConfig {
+
+// ===============
+//
+//	设置每次等待时间，单位毫秒
+//	WaitTime	int	每次等待时间，单位毫秒
+//
+// ===============
+//
+//	Set the waiting time per time, in milliseconds
+//	WaitTime	int	Waiting time per time, in milliseconds
+func OLWaitTime(WaitTime int) LinkSQLO {
 	return func(o *Option) {
 		o.WaitTime = WaitTime
 	}
@@ -27,37 +66,107 @@ func OptionWaitTime(WaitTime int) LinkSQLOptionConfig {
 
 // ===============
 //
-//	连接MySQL数据库并放入连接池
-//	item		int			配置文件中的第几个MySQL配置
-//	options		[]LinkSQLOptionConfig	配置
-//		WaitCount	int			等待次数
-//		WaitTime	int			每次等待时间，单位毫秒
+//	设置是输出到控制台
+//	IsShowPrint	bool	是否输出到控制台
 //
-//	返回值1		int			连接池中的位置
-//	返回值2		error			错误信息
+// ===============
+//
+//	Set whether to output to the console
+//	IsShowPrint	bool	Whether to output to the console
+func OLIsShowPrint(IsShowPrint bool) LinkSQLO {
+	return func(o *Option) {
+		o.IsShowPrint = IsShowPrint
+	}
+}
+
+// 是否为主键的可选配置
+//
+// Optional configuration for whether it is a primary key
+type IsPrimaryKeyO func(*Option)
+
+// ===============
+//
+//	设置是否为主键
+//	IsPrimaryKey	bool	是否为主键
+//
+// ===============
+//
+//	Set whether it is a primary key
+//	IsPrimaryKey	bool	Whether it is a primary key
+func OIPKIsPrimaryKey(IsPrimaryKey bool) IsPrimaryKeyO {
+	return func(o *Option) {
+		o.IsPrimaryKey = IsPrimaryKey
+	}
+}
+
+// ===============
+//
+//	是否输出到控制台
+//	IsShowPrint	bool	是否输出到控制台
+//
+// ===============
+//
+//	Whether to output to the console
+//	IsShowPrint	bool	Whether to output to the console
+func OIPKIsShowPrint(IsShowPrint bool) IsPrimaryKeyO {
+	return func(o *Option) {
+		o.IsShowPrint = IsShowPrint
+	}
+}
+
+// 是否输出到控制台
+//
+// Whether to output to the console
+type IsShowPrintO func(*Option)
+
+// ===============
+//
+//	是否输出到控制台
+//	IsShowPrint	bool	是否输出到控制台
+//
+// ===============
+//
+//	Whether to output to the console
+//	IsShowPrint	bool	Whether to output to the console
+func OIsShowPrint(IsShowPrint bool) IsShowPrintO {
+	return func(o *Option) {
+		o.IsShowPrint = IsShowPrint
+	}
+}
+
+// ===============
+//
+//	连接MySQL数据库并放入连接池
+//	item		int		配置文件中的第几个MySQL配置
+//	options		[]LinkSQLO	配置
+//		WaitCount	int		等待次数
+//		WaitTime	int		每次等待时间，单位毫秒
+//
+//	返回值1		int		连接池中的位置
+//	返回值2		error		错误信息
 //
 // ===============
 //
 //	Connect to MySQL database and put it into Connection pool
-//	item		int			Which MySQL configuration
-//											in the configuration file
-//	options		[]LinkSQLOptionConfig	Configuration
-//		WaitCount	int			Number of waits
-//		WaitTime	int			Waiting time per time,
-//											in milliseconds
+//	item		int		Which MySQL configuration in
+//									the configuration file
+//	options		[]LinkSQLO	Configuration
+//		WaitCount	int		Number of waits
+//		WaitTime	int		Waiting time per time,
+//									in milliseconds
 //
-//	return 1	int			Position in the connection
-//											pool
-//	return 2	error			Error message
-func (s *Setting) MysqlIsRun(item int, options ...LinkSQLOptionConfig) (int, error) {
+//	return 1	int		Position in the connection pool
+//	return 2	error		Error message
+func (s *Setting) MysqlIsRun(item int, options ...LinkSQLO) (int, error) {
+	option := &Option{
+		WaitCount:   10,
+		WaitTime:    500,
+		IsShowPrint: false,
+	}
+	for _, o := range options {
+		o(option)
+	}
 	if s.LinkNum >= s.MaxLink {
-		option := &Option{
-			WaitCount: 10,
-			WaitTime:  500,
-		}
-		for _, o := range options {
-			o(option)
-		}
 		WaitCount := 0
 		for {
 			if s.LinkNum < s.MaxLink {
@@ -86,7 +195,9 @@ func (s *Setting) MysqlIsRun(item int, options ...LinkSQLOptionConfig) (int, err
 	}
 	s.LinkNum += 1
 	s.MySQLDB[ii] = wSQLdb
-	println("MySQL DB", item, "connection successful!")
+	if option.IsShowPrint {
+		println("MySQL DB", item, "connection successful!")
+	}
 	return ii, nil
 }
 
@@ -99,7 +210,7 @@ func (s *Setting) MysqlIsRun(item int, options ...LinkSQLOptionConfig) (int, err
 //
 //	Close MySQL connection
 //	i	int	Position in the connection pool
-func (s *Setting) MysqlClose(i int) {
+func (s *Setting) MysqlClose(i int, options ...IsShowPrintO) {
 	if i < 0 || i >= len(s.MySQLDB) {
 		return
 	}
@@ -110,7 +221,15 @@ func (s *Setting) MysqlClose(i int) {
 		if s.LinkNum < 0 {
 			s.LinkNum = 0
 		}
-		println("MySQL Close Connection! Current number of connections:", s.LinkNum)
+		option := &Option{
+			IsShowPrint: false,
+		}
+		for _, o := range options {
+			o(option)
+		}
+		if option.IsShowPrint {
+			println("MySQL Close Connection! Current number of connections:", s.LinkNum)
+		}
 	}
 }
 
@@ -129,16 +248,16 @@ func (s *Setting) MysqlClose(i int) {
 //	reqd		chan []map[string]string	query result
 //	reerr		chan error			error message
 //	Debug		*log.Logger			Debug log object
-func (s *Setting) go_query(i int, sqlStr string, reqd chan []map[string]string, reerr chan error, Debug *log.Logger) {
-	mI, err := s.MysqlIsRun(i)
+func (s *Setting) go_query(i int, sqlStr string, reqd chan []map[string]string, reerr chan error, IsShowPrint bool, Debug *log.Logger) {
+	mI, err := s.MysqlIsRun(i, OLIsShowPrint(IsShowPrint))
 	if err != nil {
 		s.MysqlClose(mI)
 		reqd <- nil
 		reerr <- err
 		return
 	}
-	qd, err := s.MySQLDB[mI].QueryCMD(sqlStr, Debug)
-	s.MysqlClose(mI)
+	qd, err := s.MySQLDB[mI].QueryCMD(sqlStr, Debug, OIsShowPrint(IsShowPrint))
+	s.MysqlClose(mI, OIsShowPrint(IsShowPrint))
 	reqd <- qd
 	reerr <- err
 }
@@ -148,6 +267,8 @@ func (s *Setting) go_query(i int, sqlStr string, reqd chan []map[string]string, 
 //	根据 *Setting 从数据库集中调用单行SQL查询指令
 //	sqlStr		string			SQL指令
 //	Debug		*log.Logger		调试输出
+//	options		[]IsShowPrintO		配置
+//		IsShowPrint	bool			是否输出到控制台
 //
 //	返回值1		[]map[string]string	查询结果
 //	返回值2		[]error			错误信息
@@ -157,14 +278,25 @@ func (s *Setting) go_query(i int, sqlStr string, reqd chan []map[string]string, 
 //	According to *Setting, call single row SQL query instruction from database set
 //	sqlStr		string			SQL instruction
 //	Debug		*log.Logger		Debug output
+//	options		[]IsShowPrintO		Configuration
+//		IsShowPrint	bool			Whether to output to the
+//											console
 //
-//	Return 1	[]map[string]string	Query result
-//	Return 2	[]error			Error message
-func (s *MysqlDB) QueryCMD(sqlStr string, Debug *log.Logger) ([]map[string]string, error) {
+//	return 1	[]map[string]string	Query result
+//	return 2	[]error			Error message
+func (s *MysqlDB) QueryCMD(sqlStr string, Debug *log.Logger, options ...IsShowPrintO) ([]map[string]string, error) {
+	option := &Option{
+		IsShowPrint: false,
+	}
+	for _, o := range options {
+		o(option)
+	}
 	if Debug != nil {
 		Debug.Println("[Query]", sqlStr)
 	}
-	fmt.Println("[Query]", sqlStr)
+	if option.IsShowPrint {
+		fmt.Println("[Query]", sqlStr)
+	}
 	query, err := s.DB.Query(sqlStr)
 	if err != nil {
 		if Debug != nil {
@@ -181,6 +313,7 @@ func (s *MysqlDB) QueryCMD(sqlStr string, Debug *log.Logger) ([]map[string]strin
 //	sqlStr		string				SQL 语句
 //	reqd		chan []map[string]string	查询结果
 //	reerr		chan error			错误信息
+//	isShowPrint	bool				是否输出到控制台
 //	Debug		*log.Logger			Debug 日志对象
 //
 // ===============
@@ -189,8 +322,10 @@ func (s *MysqlDB) QueryCMD(sqlStr string, Debug *log.Logger) ([]map[string]strin
 //	sqlStr		string				SQL statement
 //	reqd		chan []map[string]string	query result
 //	reerr		chan error			error message
+//	isShowPrint	bool				Whether to output
+//													to the console
 //	Debug		*log.Logger			Debug log object
-func (s *Setting) go_exec(i int, sqlStr string, reLIid chan int64, reRA chan int64, reerr chan error, Debug *log.Logger) {
+func (s *Setting) go_exec(i int, sqlStr string, reLIid chan int64, reRA chan int64, reerr chan error, isShowPrint bool, Debug *log.Logger) {
 	mI, err := s.MysqlIsRun(i)
 	if err != nil {
 		s.MysqlClose(mI)
@@ -199,7 +334,7 @@ func (s *Setting) go_exec(i int, sqlStr string, reLIid chan int64, reRA chan int
 		reerr <- err
 		return
 	}
-	lastInsertId, rowsAffected, err := s.MySQLDB[mI].ExecCMD(sqlStr, Debug)
+	lastInsertId, rowsAffected, err := s.MySQLDB[mI].ExecCMD(sqlStr, Debug, OIsShowPrint(isShowPrint))
 	s.MysqlClose(mI)
 	if reLIid != nil {
 		reLIid <- lastInsertId
@@ -215,23 +350,38 @@ func (s *Setting) go_exec(i int, sqlStr string, reLIid chan int64, reRA chan int
 //	根据 *Setting 从数据库集中调用单行SQL指令
 //	sqlStr		string			SQL指令
 //	Debug		*log.Logger		调试输出
+//	options		[]IsShowPrintO		配置
+//		IsShowPrint	bool			是否输出到控制台
 //
-//	返回值1		[]map[string]string	查询结果
-//	返回值2		[]error			错误信息
+//	返回值1		int64			插入的行数
+//	返回值2		int64			影响的行数
+//	返回值3		[]error			错误信息
 //
 // ===============
 //
 //	According to *Setting, call single row SQL instruction from database set
 //	sqlStr		string			SQL instruction
 //	Debug		*log.Logger		Debug output
+//	options		[]IsShowPrintO		Configuration
+//	isShowPrint	bool			Whether to output
+//											to the console
 //
-//	Return 1	[]map[string]string	Query result
-//	Return 2	[]error			Error message
-func (s *MysqlDB) ExecCMD(sqlStr string, Debug *log.Logger) (int64, int64, error) {
+//	return 1	int64			Number of rows inserted
+//	return 2	int64			Number of rows affected
+//	return 3	[]error			Error message
+func (s *MysqlDB) ExecCMD(sqlStr string, Debug *log.Logger, options ...IsShowPrintO) (int64, int64, error) {
+	option := &Option{
+		IsShowPrint: false,
+	}
+	for _, o := range options {
+		o(option)
+	}
 	if Debug != nil {
 		Debug.Println("[ExecCMD]", sqlStr)
 	}
-	fmt.Println("[ExecCMD]", sqlStr)
+	if option.IsShowPrint {
+		fmt.Println("[ExecCMD]", sqlStr)
+	}
 	var (
 		lastInsertId int64 = 0
 		rowsAffected int64 = 0

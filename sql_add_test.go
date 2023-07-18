@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func TestSQLAdd(t *testing.T) {
@@ -22,19 +23,22 @@ func TestSQLAdd(t *testing.T) {
 	sqlSetting.MysqlClose(mI)
 	println("MySQL test link success")
 
-	nextDBI, nextID, err := sqlSetting.SelectLastID("data", "id", nil)
+	nextDBID, nextID, err := sqlSetting.SelectLastID("data", "id", nil)
 	if err != nil {
 		t.Error("MySQL Link failed:", err)
-		return
+
 	}
-	sqlSetting.NextAddDBID = nextDBI
-	println("NextAddDBID:", nextDBI, "maxID:", nextID)
+	sqlSetting.NextDBID = nextDBID
+	println("NextDBID:", sqlSetting.NextDBID, "maxID:", nextID)
+
+	tn := time.Now()
+	sqlSetting.ConnectFailTime[1] = &tn
 
 	values := [][]string{}
-	for i := nextID; i < nextID+9; i++ {
+	for i := nextID; i < nextID+8; i++ {
 		values = append(values, []string{strconv.Itoa(i), fmt.Sprintf("测试%d", i)})
 	}
-	inserts, errs := sqlSetting.Add("data", []string{"id", "data"}, values, nil)
+	inserts, errs := sqlSetting.Add("data", []string{"id", "data"}, values, nil, OIsShowPrint(true))
 	if errs != nil {
 		t.Error("Add failed:", errs)
 		return

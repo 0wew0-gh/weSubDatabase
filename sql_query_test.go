@@ -3,9 +3,32 @@ package weSubDatabase
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestT(t *testing.T) {
+	nextDBID := 3
+	isContinues := []bool{true, false, true, true}
+
+	limitList := []string{}
+	limit := "1, 10"
+	limit = strings.ReplaceAll(limit, " ", "")
+	ls := strings.Split(limit, ",")
+	if len(ls) >= 2 {
+		i, err := strconv.Atoi(ls[1])
+		if err == nil {
+			limitList = toLimit(nextDBID, ls[0], i, isContinues)
+		}
+	} else {
+		i, err := strconv.Atoi(limit)
+		if err == nil {
+			limitList = toLimit(nextDBID, "", i, isContinues)
+		}
+	}
+	fmt.Println(limitList)
+}
 
 func TestSQLforID(t *testing.T) {
 	t.Log("TestSQLforID")
@@ -18,7 +41,7 @@ func TestSQLforID(t *testing.T) {
 	//	map[data:测试8 id:XU time:2023-07-12 17:12:32] DB big_data_test_4 ID 8
 	//	map[data:测试3 id:cV time:2023-07-12 09:29:31] DB big_data_test_3 ID 3
 	//	map[data:测试4 id:bU time:2023-07-12 09:29:31] DB big_data_test_4 ID 4
-	qd, errs := sqlSetting.QueryID("data", "", "id", []string{"YV", "XU", "cV", "bU"}, "`id` DESC", nil)
+	qd, errs := sqlSetting.QueryID("data", "", "id", []string{"YV", "XU", "cV", "bU"}, "`id` DESC", nil, OIsShowPrint(true))
 	if errs != nil {
 		t.Error("MySQL QueryCMD failed:", errs)
 		return
@@ -51,11 +74,16 @@ func TestSQLQuery(t *testing.T) {
 		return
 	}
 
+	nextDBI, maxID, err := sqlSetting.SelectLastID("data", "id", nil)
+	if err != nil {
+		t.Error("MySQL SelectLastID failed:", err)
+	}
+	println("NextAddDBID:", nextDBI, "maxID:", maxID)
+
 	println("MySQL Link test")
-	qd, errs := sqlSetting.Query("data", "*", "id", "`time` BETWEEN '2023-07-14 13:54:48' and '2023-07-14 13:54:55'", "`id` DESC", "", nil)
+	qd, errs := sqlSetting.Query("data", "*", "id", "`time` BETWEEN '2023-07-14 13:54:48' and '2023-07-14 13:54:55'", "`id` DESC", "10", nil, OIsShowPrint(true))
 	if errs != nil {
 		t.Error("MySQL QueryCMD failed:", errs)
-		return
 	}
 	for i := 0; i < len(qd); i++ {
 		id := qd[i]["id"]
@@ -64,9 +92,8 @@ func TestSQLQuery(t *testing.T) {
 		dbName := ""
 		if err == nil {
 			dbName = sqlSetting.SqlConfigs[DBi].DB
-
 		}
-		fmt.Println(qd[i], "DB", dbName, "ID", reStr)
+		t.Log("=====>", dbName, reStr, i, "<=====")
 	}
 }
 

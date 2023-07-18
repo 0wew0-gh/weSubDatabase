@@ -7,9 +7,37 @@ import (
 	"time"
 )
 
-func (s *Setting) Delete(table string, forKey string, ids []string, Debug *log.Logger, options ...UpdateOptionConfig) ([]int64, []error) {
+// ===============
+//
+//	自动根据 *Setting 向下一个数据库中的指定表删除数据
+//	table			string		表名
+//	forKey			string		键名
+//	ids			[]string	值
+//	Debug			*log.Logger	调试输出
+//	options			[]IsPrimaryKeyO	配置
+//		IsPrimaryKey	bool		是否为主键
+//		IsShowPrint		bool		是否输出到控制台
+//
+//	返回值1			[]int64		删除的行数
+//	返回值2			[]error		错误信息
+//
+// ===============
+//
+//	Automatically delete data from the specified table in the next database according to *Setting
+//	table			string		table name
+//	forKey			string		key name
+//	ids			[]string	value
+//	Debug			*log.Logger	debug output
+//	options			[]IsPrimaryKeyO	Configuration
+//		IsPrimaryKey	bool		Whether it is a primary key
+//		IsShowPrint		bool		Whether to output to the console
+//
+//	return 1		[]int64		Number of rows deleted
+//	return 2		[]error		Error message
+func (s *Setting) Delete(table string, forKey string, ids []string, Debug *log.Logger, options ...IsPrimaryKeyO) ([]int64, []error) {
 	option := &Option{
 		IsPrimaryKey: true,
+		IsShowPrint:  false,
 	}
 	for _, o := range options {
 		o(option)
@@ -33,10 +61,12 @@ func (s *Setting) Delete(table string, forKey string, ids []string, Debug *log.L
 		reInt = append(reInt, -1)
 		errs = append(errs, nil)
 	}
-	fmt.Println("=================")
-	fmt.Println(dbIList)
-	fmt.Println(idList)
-	fmt.Println("=================")
+	if option.IsShowPrint {
+		fmt.Println("=================")
+		fmt.Println(dbIList)
+		fmt.Println(idList)
+		fmt.Println("=================")
+	}
 	var wg sync.WaitGroup
 	for sqlI := 0; sqlI < len(s.SqlConfigs); sqlI++ {
 		if !s.IsRetryConnect(sqlI) {
@@ -55,10 +85,12 @@ func (s *Setting) Delete(table string, forKey string, ids []string, Debug *log.L
 			where += "'" + idList[sqlI][i] + "'"
 		}
 		sqlStr += where + ");"
-		fmt.Println("[", s.SqlConfigs[sqlI].DB, "]:", sqlStr)
+		if option.IsShowPrint {
+			fmt.Println("[", s.SqlConfigs[sqlI].DB, "]:", sqlStr)
+		}
 		chanRA := make(chan int64)
 		chanErr := make(chan error)
-		go s.go_exec(sqlI, sqlStr, nil, chanRA, chanErr, Debug)
+		go s.go_exec(sqlI, sqlStr, nil, chanRA, chanErr, option.IsShowPrint, Debug)
 		rRA := false
 		rE := false
 		for {
