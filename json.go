@@ -16,18 +16,16 @@ type wJson struct {
 // ===============
 //
 //	解析json字符串
-//	jsonStr	string	需要解析的json字符串
-//
-//	返回值1	*Json	解析后的json对象
-//	返回值2	error	解析错误
+//	jsonStr		string		"需要解析的json字符串"
+//	return 1	*Json		"解析后的json对象"
+//	return 2	error		"解析错误"
 //
 //	==============
 //
 //	Parsing JSON strings
-//	jsonStr	string	json string
-//
-//	return1	*Json	parsed json object
-//	return2	error	parsing error
+//	jsonStr		string		"json string"
+//	return1		*Json		"parsed json object"
+//	return2		error		"parsing error"
 func Parse(jsonStr string) (*wJson, error) {
 	tempJson := make(map[string]interface{}, 0)
 	err := json.Unmarshal([]byte(jsonStr), &tempJson)
@@ -40,16 +38,14 @@ func Parse(jsonStr string) (*wJson, error) {
 // ===============
 //
 //	获取json中的值
-//	key	string		需要获取的key
-//
-//	返回值1	interface{}	获取到的值
+//	key		string		"需要获取的key"
+//	return 1	interface{}	"获取到的值"
 //
 //	==============
 //
 //	Get the value in json
-//	key	string		key
-//
-//	return1	interface{}	value
+//	key		string		"key"
+//	return 1	interface{}	"value"
 func (w *wJson) Get(key string) interface{} {
 	temp := w.Data[key]
 	w.Key = key
@@ -60,14 +56,12 @@ func (w *wJson) Get(key string) interface{} {
 // ===============
 //
 //	上次调用Get()方法后，是否存在值
-//
-//	返回值1	bool	是否存在
+//	return 1	bool	"是否存在"
 //
 //	==============
 //
 //	After the last call to the Get() method, is there a value
-//
-//	return1	bool	whether exists
+//	return 1	bool	"whether exists"
 func (w *wJson) Exists() bool {
 	return w.Value != nil
 }
@@ -75,14 +69,12 @@ func (w *wJson) Exists() bool {
 // ===============
 //
 //	返回上次调用Get()方法后，获取到的值的字符串形式
-//
-//	返回值1	string	获取到的值的字符串形式
+//	return 1	string	"获取到的值的字符串形式"
 //
 // ==============
 //
 //	return the string form of the value obtained after the last call to the Get() method
-//
-//	return1	string	string form of the value obtained
+//	return 1	string	"string form of the value obtained"
 func (w *wJson) String() string {
 	switch tempType := w.Value.(type) {
 	case string:
@@ -137,18 +129,16 @@ type Contrast struct {
 // ===============
 //
 //	从json字符串中解析配置
-//	configStr	string	需要解析的json字符串
-//
-//	返回值1		*Config	解析后的配置对象
-//	返回值2		error	解析错误
+//	configStr	string	"需要解析的json字符串"
+//	return 1	*Config	"解析后的配置对象"
+//	return 2	error	"解析错误"
 //
 //	==============
 //
 //	Parse configuration from json string
-//	configStr	string	json string
-//
-//	return1		*Config	parsed configuration object
-//	return2		error	parsing error
+//	configStr	string	"json string"
+//	return 1	*Config	"parsed configuration object"
+//	return 2	error	"parsing error"
 func GetConfig(configStr string) (*Config, error) {
 	var config Config
 	err := json.Unmarshal([]byte(configStr), &config)
@@ -161,18 +151,16 @@ func GetConfig(configStr string) (*Config, error) {
 // ===============
 //
 //	从json字符串中解析MySQL配置
-//	config	string		需要解析的json字符串
-//
-//	返回值1	*SQLConfig	解析后的MySQL配置对象
-//	返回值2	error		解析错误
+//	config		string		"需要解析的json字符串"
+//	return 1	*SQLConfig	"解析后的MySQL配置对象"
+//	return 2	error		"解析错误"
 //
 //	==============
 //
 //	Parse MySQL configuration from json string
-//	config	string		json string
-//
-//	return1	*SQLConfig	parsed MySQL configuration object
-//	return2	error		parsing error
+//	config		string		"json string"
+//	return 1	*SQLConfig	"parsed MySQL configuration object"
+//	return 2	error		"parsing error"
 func GetSQLConfig(config string) (*SQLConfig, error) {
 	var sqlConfig SQLConfig
 	err := json.Unmarshal([]byte(config), &sqlConfig)
@@ -185,17 +173,15 @@ func GetSQLConfig(config string) (*SQLConfig, error) {
 // ===============
 //
 //	从字典中解析MySQL配置
-//	configMap	map[string]interface{}	需要解析的字典
-//
-//	返回值1		*SQLConfig		解析后的MySQL配置对象
+//	configMap	map[string]interface{}	"需要解析的字典"
+//	return 1	*SQLConfig		"解析后的MySQL配置对象"
 //
 //	==============
 //
 //	Parse MySQL configuration from dictionary
-//	configMap	map[string]interface{}	dictionary
-//
-//	return1		*SQLConfig		parsed MySQL configuration
-//											object
+//	configMap	map[string]interface{}	"dictionary"
+//	return 1	*SQLConfig		"parsed MySQL configuration
+//											object"
 func GetSQLConfigMap(configMap map[string]interface{}) *SQLConfig {
 	var sqlConfig SQLConfig
 	temp := configMap["mysql_user"]

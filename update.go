@@ -10,37 +10,35 @@ import (
 // ===============
 //
 //	更新数据
-//	table			string			表名
-//	key			[]string		字段名
-//	value			[][]string		值
-//	forKey			string			加密用的key
-//	ids			[]string		主键
-//	Debug			*log.Logger		调试输出
-//	options			[]UpdateOptionConfig	配置
-//		IsPrimaryKey	bool			是否使用主键
-//		IsShowPrint		bool			是否输出到控制台
-//
-//	返回值1			[]int64			更新的行数
-//	返回值2			error			错误信息
+//	table			string			"表名"
+//	key			[]string		"字段名"
+//	value			[][]string		"值"
+//	forKey			string			"加密用的key"
+//	ids			[]string		"主键"
+//	Debug			*log.Logger		"调试输出"
+//	options			[]UpdateOptionConfig	"配置"
+//		IsPrimaryKey	bool			"是否使用主键"
+//		IsShowPrint		bool			"是否输出到控制台"
+//	return 1		[]int64			"更新的行数"
+//	return 2		error			"错误信息"
 //
 // ===============
 //
 //	Update data
-//	table			string			Table name
-//	key			[]string		Field name
-//	value			[][]string		Value
-//	forKey			string			Encryption key
-//	ids			[]string		Primary key
-//	Debug			*log.Logger		Debug output
-//	options			[]UpdateOptionConfig	Configuration
-//		IsPrimaryKey	bool			Whether to use the
-//													primary key
-//		IsShowPrint		bool			Whether to output
-//													to the console
-//
-//	return 1		[]int64			Number of rows
-//													updated
-//	return 2		error			Error message
+//	table			string			"Table name"
+//	key			[]string		"Field name"
+//	value			[][]string		"Value"
+//	forKey			string			"Encryption key"
+//	ids			[]string		"Primary key"
+//	Debug			*log.Logger		"Debug output"
+//	options			[]UpdateOptionConfig	"Configuration"
+//		IsPrimaryKey	bool			"Whether to use the
+//													primary key"
+//		IsShowPrint		bool			"Whether to output
+//													to the console"
+//	return 1		[]int64			"Number of rows
+//													updated"
+//	return 2		error			"Error message"
 func (s *Setting) Update(table string, key []string, value [][]string, forKey string, ids []string, Debug *log.Logger, options ...IsPrimaryKeyO) ([]int64, []error) {
 	option := &Option{
 		IsPrimaryKey: true,
@@ -130,6 +128,11 @@ func (s *Setting) Update(table string, key []string, value [][]string, forKey st
 				idStr += ","
 			}
 			idStr += "'" + idList[sqlI][i] + "'"
+		}
+		if errStr := CheckString(idStr); len(errStr) > 0 {
+			errs[sqlI] = fmt.Errorf("SQL injection: %s", idStr)
+			wg.Done()
+			continue
 		}
 		sqlStr += setStr + " WHERE `" + forKey + "` IN (" + idStr + ")"
 		if forKey == "" {

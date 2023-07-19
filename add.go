@@ -10,28 +10,26 @@ import (
 // ===============
 //
 //	自动根据 *Setting 向下一个数据库中的指定表添加数据
-//	table		string		表名
-//	keys		[]string	键名
-//	values		[][]string	值
-//	Debug		*log.Logger	调试输出
-//	options		[]IsShowPrintO	配置
-//		IsShowPrint	bool		是否输出到控制台
-//
-//	返回值1		[]int64		插入的行数
-//	返回值2		[]error		错误信息
+//	table		string		"表名"
+//	keys		[]string	"键名"
+//	values		[][]string	"值"
+//	Debug		*log.Logger	"调试输出"
+//	options		[]IsShowPrintO	"配置"
+//		IsShowPrint	bool		"是否输出到控制台"
+//	return 1	[]int64		"插入的行数"
+//	return 2	[]error		"错误信息"
 //
 // ===============
 //
 //	Automatically add data to the specified table in the next database according to *Setting
-//	table		string		table name
-//	keys		[]string	key name
-//	values		[][]string	value
-//	Debug		*log.Logger	debug output
-//	options		[]IsShowPrintO	Configuration
-//		IsShowPrint	bool		Whether to output to the console
-//
-//	return 1	[]int64		Number of rows inserted
-//	return 2	[]error		Error message
+//	table		string		"table name"
+//	keys		[]string	"key name"
+//	values		[][]string	"value"
+//	Debug		*log.Logger	"debug output"
+//	options		[]IsShowPrintO	"Configuration"
+//		IsShowPrint	bool		"Whether to output to the console"
+//	return 1	[]int64		"Number of rows inserted"
+//	return 2	[]error		"Error message"
 func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log.Logger, options ...IsShowPrintO) ([]int64, []error) {
 	option := &Option{
 		IsShowPrint: false,
@@ -41,6 +39,7 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 	}
 	sqlKeys := ""
 	sqlValList := []string{}
+	sqlValList2 := []string{}
 	var isContinues []bool
 	for i := 0; i < len(s.ConnectFailTime); i++ {
 		isContinues = append(isContinues, s.IsRetryConnect(i))
@@ -51,11 +50,14 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 			return nil, []error{fmt.Errorf("values[%d]与keys 对象数目不一致", i)}
 		}
 		sqlVal := ""
+		sqlVal2 := ""
 		for i := 0; i < len(val); i++ {
 			if sqlVal != "" {
 				sqlVal += ","
+				sqlVal2 += ","
 			}
 			sqlVal += "'" + val[i] + "'"
+			sqlVal2 += val[i]
 		}
 		sqlI := s.NextDBID - 1
 		s.NextDBID++
@@ -70,12 +72,14 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 			temp := sqlI - len(sqlValList) + 1
 			for i := 0; i < temp; i++ {
 				sqlValList = append(sqlValList, "(")
+				sqlValList2 = append(sqlValList2, "(")
 			}
 		}
 		if sqlI <= s.DBMaxNum && sqlValList[sqlI] != "(" {
 			sqlValList[sqlI] += ",("
 		}
 		sqlValList[sqlI] += sqlVal + ")"
+		sqlValList2[sqlI] += sqlVal2 + ")"
 	}
 	for i := 0; i < len(keys); i++ {
 		if sqlKeys != "" {
@@ -101,9 +105,14 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 			continue
 		}
 		wg.Add(1)
+		sqlStr := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES %s", table, sqlKeys, sqlValList[i])
+		if errStr := CheckString(sqlValList2[i]); len(errStr) > 0 {
+			errs[i] = fmt.Errorf("SQL injection: %s", sqlValList2[i])
+			wg.Done()
+			continue
+		}
 		reInsert := make(chan int64)
 		reErr := make(chan error)
-		sqlStr := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES %s", table, sqlKeys, sqlValList[i])
 		go s.go_add(i, sqlStr, reInsert, reErr, option.IsShowPrint, Debug)
 		rI := false
 		rE := false

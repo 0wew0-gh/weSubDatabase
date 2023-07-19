@@ -35,8 +35,15 @@ func TestSQLAdd(t *testing.T) {
 	sqlSetting.ConnectFailTime[1] = &tn
 
 	values := [][]string{}
+	j := nextID
 	for i := nextID; i < nextID+8; i++ {
-		values = append(values, []string{strconv.Itoa(i), fmt.Sprintf("测试%d", i)})
+		msg := fmt.Sprintf("测试%d", i)
+		if errStr := CheckString(msg); len(errStr) > 0 {
+			fmt.Println(msg, "有非法字符")
+			continue
+		}
+		values = append(values, []string{strconv.Itoa(j), msg})
+		j += 1
 	}
 	inserts, errs := sqlSetting.Add("data", []string{"id", "data"}, values, nil, OIsShowPrint(true))
 	if errs != nil {
@@ -44,6 +51,5 @@ func TestSQLAdd(t *testing.T) {
 		return
 	}
 	fmt.Println("inserts:", inserts)
-
-	fmt.Println(sqlSetting.MySQLDB)
+	fmt.Println("MySQLDB array:", sqlSetting.MySQLDB)
 }

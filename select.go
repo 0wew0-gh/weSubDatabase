@@ -14,34 +14,31 @@ import (
 // ===============
 //
 //	自动根据 *Setting 从数据库集中，根据加密后的主键查询
-//	table		string			表名
-//	from		string			查询的字段
-//	primaryKey	string			主键
-//	ids		[]string		加密后的主键
-//	order		string			排序
-//	Debug		*log.Logger		调试输出
-//	options		[]IsShowPrintO		配置
-//		IsShowPrint	bool			是否输出到控制台
-//
-//	返回值1		[]map[string]string	查询到的数据
-//	返回值2		[]error			错误信息
+//	table		string			"表名"
+//	from		string			"查询的字段"
+//	primaryKey	string			"主键"
+//	ids		[]string		"加密后的主键"
+//	order		string			"排序"
+//	Debug		*log.Logger		"调试输出"
+//	options		[]IsShowPrintO		"配置"
+//		IsShowPrint	bool			"是否输出到控制台"
+//	return 1	[]map[string]string	"查询到的数据"
+//	return 2	[]error			"错误信息"
 //
 // ===============
 //
 //	Automatically query from the database set according to *Setting, according to the encrypted primary key
-//	table		string			table name
-//	from		string			query field
-//	primaryKey	string			primary key
-//	ids		[]string		encrypted primary key
-//	order		string			sort
-//	Debug		*log.Logger		debug output
-//	options		[]IsShowPrintO		Configuration
-//		IsShowPrint	bool			Whether to output to the
-//											console
-//
-//
-//	return 1	[]map[string]string	query data
-//	return 2	[]error			error message
+//	table		string			"table name"
+//	from		string			"query field"
+//	primaryKey	string			"primary key"
+//	ids		[]string		"encrypted primary key"
+//	order		string			"sort"
+//	Debug		*log.Logger		"debug output"
+//	options		[]IsShowPrintO		"Configuration"
+//		IsShowPrint	bool			"Whether to output to the
+//											console"
+//	return 1	[]map[string]string	"query data"
+//	return 2	[]error			"error message"
 func (s *Setting) QueryID(table string, from string, primaryKey string, ids []string, order string, Debug *log.Logger, options ...IsShowPrintO) ([]map[string]string, []error) {
 	option := &Option{
 		IsShowPrint: false,
@@ -73,7 +70,13 @@ func (s *Setting) QueryID(table string, from string, primaryKey string, ids []st
 			sqlStr += from
 		}
 		sqlStr += " FROM `" + table + "` WHERE `" + primaryKey + "` IN ('"
-		sqlStr += strings.Join(idList[i], "','") + "')"
+		whereIN := strings.Join(idList[i], "','")
+		if errStr := CheckString(whereIN); len(errStr) > 0 {
+			errs[i] = fmt.Errorf("SQL injection: %s", whereIN)
+			wg.Done()
+			continue
+		}
+		sqlStr += whereIN + "')"
 		if order != "" {
 			sqlStr += " ORDER BY " + order
 		}
@@ -165,41 +168,42 @@ func (s *Setting) QueryID(table string, from string, primaryKey string, ids []st
 // ===============
 //
 //	根据 *Setting 从数据库集中查询
-//	table		string			表名
-//	from		string			查询字段
-//											""为默认值*
-//	primaryKey	string			主键
-//											为""时不加密
-//	where		string			查询条件
-//	order		string			排序
-//	limit		string			分页
-//											""为默认值100
-//	Debug		*log.Logger		调试日志对象
-//	options		[]IsShowPrintO		配置
-//		IsShowPrint	bool			是否输出到控制台
-//
-//	返回值1		[]map[string]string	查询结果
-//	返回值2		[]error			错误信息
+//	table		string			"表名"
+//	from		string			"查询字段
+//											空字符串为默认值 *"
+//	primaryKey	string			"主键
+//											空字符串时不加密"
+//	where		string			"查询条件"
+//	order		string			"排序"
+//	limit		string			"分页
+//											空字符串为默认值:100"
+//	Debug		*log.Logger		"调试日志对象"
+//	options		[]IsShowPrintO		"配置"
+//		IsShowPrint	bool			"是否输出到控制台"
+//	return 1	[]map[string]string	"查询结果"
+//	return 2	[]error			"错误信息"
 //
 // ===============
 //
 //	According to *Setting, query from the database set
-//	table		string			Table name
-//	from		string			Query field
-//											"" is the default value *
-//	primaryKey	string			Primary key
-//											"" does not encrypt
-//	where		string			Query condition
-//	order		string			Sorting
-//	limit		string			Paging
-//											"" is the default value 100
-//	Debug		*log.Logger		Debug log object
-//	options		[]IsShowPrintO		Configuration
-//		IsShowPrint	bool			Whether to output to the
-//											console
-//
-//	return 1	[]map[string]string	Query result
-//	return 2	[]error			Error message
+//	table		string			"Table name"
+//	from		string			"Query field
+//											Empty string is the default
+//											value *"
+//	primaryKey	string			"Primary key
+//											Empty string is not
+//											encrypted"
+//	where		string			"Query condition"
+//	order		string			"Sorting"
+//	limit		string			"Paging
+//											Empty string is the default
+//											value: 100"
+//	Debug		*log.Logger		"Debug log object"
+//	options		[]IsShowPrintO		"Configuration"
+//		IsShowPrint	bool			"Whether to output to the
+//											console"
+//	return 1	[]map[string]string	"Query result"
+//	return 2	[]error			"Error message"
 func (s *Setting) Query(table string, from string, primaryKey string, where string, order string, limit string, Debug *log.Logger, options ...IsShowPrintO) ([]map[string]string, []error) {
 	option := &Option{
 		IsShowPrint: false,
@@ -215,6 +219,9 @@ func (s *Setting) Query(table string, from string, primaryKey string, where stri
 	}
 	sqlStr += "`" + table + "`"
 	if where != "" {
+		if errStr := CheckString(where); len(errStr) > 0 {
+			return nil, []error{fmt.Errorf("SQL injection: %s", where)}
+		}
 		sqlStr += " WHERE " + where
 	}
 	orderKey := "id"
@@ -344,31 +351,29 @@ func (s *Setting) Query(table string, from string, primaryKey string, where stri
 // ===============
 //
 //	根据 *Setting 从数据库集中查询指定表的最后一条数据的 ID
-//	table		string		表名
-//	primaryKey	string		主键名,主键类型必须为数字类型
-//	Debug		*log.Logger	Debug 日志对象
-//	options		[]IsShowPrintO	配置
-//		IsShowPrint	bool		是否输出到控制台
-//
-//	返回值1		int		下一条数据所在的数据库索引
-//	返回值2		int		下一条数据的 ID
-//	返回值3		error		错误信息
+//	table		string		"表名"
+//	primaryKey	string		"主键名,主键类型必须为数字类型"
+//	Debug		*log.Logger	"Debug 日志对象"
+//	options		[]IsShowPrintO	"配置"
+//		IsShowPrint	bool		"是否输出到控制台"
+//	return 1	int		"下一条数据所在的数据库索引"
+//	return 2	int		"下一条数据的 ID"
+//	return 3	error		"错误信息"
 //
 // ===============
 //
 //	According to *Setting, query the ID of the last data of the specified table from the database set
-//	table		string		table name
-//	primaryKey	string		primary key name,The primary key
-//									type must be a numeric type
-//	Debug		*log.Logger	Debug log object
-//	options		[]IsShowPrintO	Configuration
-//		IsShowPrint	bool		Whether to output to the
-//									console
-//
-//	return 1	int		The database index where the next
-//									data is located
-//	return 2	int		ID of the next data
-//	return 3	error		Error message
+//	table		string		"table name"
+//	primaryKey	string		"primary key name,The primary key
+//									type must be a numeric type"
+//	Debug		*log.Logger	"Debug log object"
+//	options		[]IsShowPrintO	"Configuration"
+//		IsShowPrint	bool		"Whether to output to the
+//									console"
+//	return 1	int		"The database index where the next
+//									data is located"
+//	return 2	int		"ID of the next data"
+//	return 3	error		"Error message"
 func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logger, options ...IsShowPrintO) (int, int, error) {
 	option := &Option{
 		IsShowPrint: false,
@@ -461,20 +466,18 @@ func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logge
 // ===============
 //
 //	处理查询结果
-//	query		*sql.Rows		查询结果
-//	Debug		*log.Logger		Debug 日志对象
-//
-//	返回值1		[]map[string]string	查询结果
-//	返回值2		error			错误信息
+//	query		*sql.Rows		"查询结果"
+//	Debug		*log.Logger		"Debug 日志对象"
+//	return 1	[]map[string]string	"查询结果"
+//	return 2	error			"错误信息"
 //
 // ===============
 //
 //	handle query data
-//	query		*sql.Rows		query result
-//	Debug		*log.Logger		Debug log object
-//
-//	return 1	[]map[string]string	query result
-//	return 2	error			error message
+//	query		*sql.Rows		"query result"
+//	Debug		*log.Logger		"Debug log object"
+//	return 1	[]map[string]string	"query result"
+//	return 2	error			"error message"
 func handleQD(query *sql.Rows, Debug *log.Logger) ([]map[string]string, error) {
 	//读出查询出的列字段名
 	cols, _ := query.Columns()

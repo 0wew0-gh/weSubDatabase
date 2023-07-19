@@ -37,12 +37,12 @@ type LinkSQLO func(*Option)
 // ===============
 //
 //	设置等待次数
-//	WaitCount	int	等待次数
+//	WaitCount	int	"等待次数"
 //
 // ===============
 //
 //	Set the number of waits
-//	WaitCount	int	Number of waits
+//	WaitCount	int	"Number of waits"
 func OLWaitCount(WaitCount int) LinkSQLO {
 	return func(o *Option) {
 		o.WaitCount = WaitCount
@@ -52,12 +52,12 @@ func OLWaitCount(WaitCount int) LinkSQLO {
 // ===============
 //
 //	设置每次等待时间，单位毫秒
-//	WaitTime	int	每次等待时间，单位毫秒
+//	WaitTime	int	"每次等待时间，单位毫秒"
 //
 // ===============
 //
 //	Set the waiting time per time, in milliseconds
-//	WaitTime	int	Waiting time per time, in milliseconds
+//	WaitTime	int	"Waiting time per time, in milliseconds"
 func OLWaitTime(WaitTime int) LinkSQLO {
 	return func(o *Option) {
 		o.WaitTime = WaitTime
@@ -67,12 +67,12 @@ func OLWaitTime(WaitTime int) LinkSQLO {
 // ===============
 //
 //	设置是输出到控制台
-//	IsShowPrint	bool	是否输出到控制台
+//	IsShowPrint	bool	"是否输出到控制台"
 //
 // ===============
 //
 //	Set whether to output to the console
-//	IsShowPrint	bool	Whether to output to the console
+//	IsShowPrint	bool	"Whether to output to the console"
 func OLIsShowPrint(IsShowPrint bool) LinkSQLO {
 	return func(o *Option) {
 		o.IsShowPrint = IsShowPrint
@@ -87,12 +87,12 @@ type IsPrimaryKeyO func(*Option)
 // ===============
 //
 //	设置是否为主键
-//	IsPrimaryKey	bool	是否为主键
+//	IsPrimaryKey	bool	"是否为主键"
 //
 // ===============
 //
 //	Set whether it is a primary key
-//	IsPrimaryKey	bool	Whether it is a primary key
+//	IsPrimaryKey	bool	"Whether it is a primary key"
 func OIPKIsPrimaryKey(IsPrimaryKey bool) IsPrimaryKeyO {
 	return func(o *Option) {
 		o.IsPrimaryKey = IsPrimaryKey
@@ -102,12 +102,12 @@ func OIPKIsPrimaryKey(IsPrimaryKey bool) IsPrimaryKeyO {
 // ===============
 //
 //	是否输出到控制台
-//	IsShowPrint	bool	是否输出到控制台
+//	IsShowPrint	bool	"是否输出到控制台"
 //
 // ===============
 //
 //	Whether to output to the console
-//	IsShowPrint	bool	Whether to output to the console
+//	IsShowPrint	bool	"Whether to output to the console"
 func OIPKIsShowPrint(IsShowPrint bool) IsPrimaryKeyO {
 	return func(o *Option) {
 		o.IsShowPrint = IsShowPrint
@@ -122,12 +122,12 @@ type IsShowPrintO func(*Option)
 // ===============
 //
 //	是否输出到控制台
-//	IsShowPrint	bool	是否输出到控制台
+//	IsShowPrint	bool	"是否输出到控制台"
 //
 // ===============
 //
 //	Whether to output to the console
-//	IsShowPrint	bool	Whether to output to the console
+//	IsShowPrint	bool	"Whether to output to the console"
 func OIsShowPrint(IsShowPrint bool) IsShowPrintO {
 	return func(o *Option) {
 		o.IsShowPrint = IsShowPrint
@@ -137,26 +137,24 @@ func OIsShowPrint(IsShowPrint bool) IsShowPrintO {
 // ===============
 //
 //	连接MySQL数据库并放入连接池
-//	item		int		配置文件中的第几个MySQL配置
-//	options		[]LinkSQLO	配置
-//		WaitCount	int		等待次数
-//		WaitTime	int		每次等待时间，单位毫秒
-//
-//	返回值1		int		连接池中的位置
-//	返回值2		error		错误信息
+//	item		int		"配置文件中的第几个MySQL配置"
+//	options		[]LinkSQLO	"配置"
+//		WaitCount	int		"等待次数"
+//		WaitTime	int		"每次等待时间，单位毫秒"
+//	return 1	int		"连接池中的位置"
+//	return 2	error		"错误信息"
 //
 // ===============
 //
 //	Connect to MySQL database and put it into Connection pool
-//	item		int		Which MySQL configuration in
-//									the configuration file
-//	options		[]LinkSQLO	Configuration
-//		WaitCount	int		Number of waits
-//		WaitTime	int		Waiting time per time,
-//									in milliseconds
-//
-//	return 1	int		Position in the connection pool
-//	return 2	error		Error message
+//	item		int		"Which MySQL configuration in
+//									the configuration file"
+//	options		[]LinkSQLO	"Configuration"
+//		WaitCount	int		"Number of waits"
+//		WaitTime	int		"Waiting time per time,
+//									in milliseconds"
+//	return 1	int		"Position in the connection pool"
+//	return 2	error		"Error message"
 func (s *Setting) MysqlIsRun(item int, options ...LinkSQLO) (int, error) {
 	option := &Option{
 		WaitCount:   10,
@@ -204,12 +202,12 @@ func (s *Setting) MysqlIsRun(item int, options ...LinkSQLO) (int, error) {
 // ===============
 //
 //	关闭MySQL连接
-//	i	int	连接池中的位置
+//	i	int	"连接池中的位置"
 //
 // ===============
 //
 //	Close MySQL connection
-//	i	int	Position in the connection pool
+//	i	int	"Position in the connection pool"
 func (s *Setting) MysqlClose(i int, options ...IsShowPrintO) {
 	if i < 0 || i >= len(s.MySQLDB) {
 		return
@@ -236,18 +234,18 @@ func (s *Setting) MysqlClose(i int, options ...IsShowPrintO) {
 // ===============
 //
 //	根据 *MysqlDB 查询
-//	sqlStr		string				SQL 语句
-//	reqd		chan []map[string]string	查询结果
-//	reerr		chan error			错误信息
-//	Debug		*log.Logger			Debug 日志对象
+//	sqlStr		string				"SQL 语句"
+//	reqd		chan []map[string]string	"查询结果"
+//	reerr		chan error			"错误信息"
+//	Debug		*log.Logger			"Debug 日志对象"
 //
 // ===============
 //
 //	According to *MysqlDB query
-//	sqlStr		string				SQL statement
-//	reqd		chan []map[string]string	query result
-//	reerr		chan error			error message
-//	Debug		*log.Logger			Debug log object
+//	sqlStr		string				"SQL statement"
+//	reqd		chan []map[string]string	"query result"
+//	reerr		chan error			"error message"
+//	Debug		*log.Logger			"Debug log object"
 func (s *Setting) go_query(i int, sqlStr string, reqd chan []map[string]string, reerr chan error, IsShowPrint bool, Debug *log.Logger) {
 	mI, err := s.MysqlIsRun(i, OLIsShowPrint(IsShowPrint))
 	if err != nil {
@@ -265,25 +263,23 @@ func (s *Setting) go_query(i int, sqlStr string, reqd chan []map[string]string, 
 // ===============
 //
 //	根据 *Setting 从数据库集中调用单行SQL查询指令
-//	sqlStr		string			SQL指令
-//	Debug		*log.Logger		调试输出
-//	options		[]IsShowPrintO		配置
-//		IsShowPrint	bool			是否输出到控制台
-//
-//	返回值1		[]map[string]string	查询结果
-//	返回值2		[]error			错误信息
+//	sqlStr		string			"SQL指令"
+//	Debug		*log.Logger		"调试输出"
+//	options		[]IsShowPrintO		"配置"
+//		IsShowPrint	bool			"是否输出到控制台"
+//	return 1	[]map[string]string	"查询结果"
+//	return 2	[]error			"错误信息"
 //
 // ===============
 //
 //	According to *Setting, call single row SQL query instruction from database set
-//	sqlStr		string			SQL instruction
-//	Debug		*log.Logger		Debug output
-//	options		[]IsShowPrintO		Configuration
-//		IsShowPrint	bool			Whether to output to the
-//											console
-//
-//	return 1	[]map[string]string	Query result
-//	return 2	[]error			Error message
+//	sqlStr		string			"SQL instruction"
+//	Debug		*log.Logger		"Debug output"
+//	options		[]IsShowPrintO		"Configuration"
+//		IsShowPrint	bool			"Whether to output to the
+//											console"
+//	return 1	[]map[string]string	"Query result"
+//	return 2	[]error			"Error message"
 func (s *MysqlDB) QueryCMD(sqlStr string, Debug *log.Logger, options ...IsShowPrintO) ([]map[string]string, error) {
 	option := &Option{
 		IsShowPrint: false,
@@ -310,21 +306,21 @@ func (s *MysqlDB) QueryCMD(sqlStr string, Debug *log.Logger, options ...IsShowPr
 // ===============
 //
 //	根据 *MysqlDB 调用单行SQL查询指令
-//	sqlStr		string				SQL 语句
-//	reqd		chan []map[string]string	查询结果
-//	reerr		chan error			错误信息
-//	isShowPrint	bool				是否输出到控制台
-//	Debug		*log.Logger			Debug 日志对象
+//	sqlStr		string				"SQL 语句"
+//	reqd		chan []map[string]string	"查询结果"
+//	reerr		chan error			"错误信息"
+//	isShowPrint	bool				"是否输出到控制台"
+//	Debug		*log.Logger			"Debug 日志对象"
 //
 // ===============
 //
 //	According to *MysqlDB query
-//	sqlStr		string				SQL statement
-//	reqd		chan []map[string]string	query result
-//	reerr		chan error			error message
-//	isShowPrint	bool				Whether to output
-//													to the console
-//	Debug		*log.Logger			Debug log object
+//	sqlStr		string				"SQL statement"
+//	reqd		chan []map[string]string	"query result"
+//	reerr		chan error			"error message"
+//	isShowPrint	bool				"Whether to output
+//													to the console"
+//	Debug		*log.Logger			"Debug log object"
 func (s *Setting) go_exec(i int, sqlStr string, reLIid chan int64, reRA chan int64, reerr chan error, isShowPrint bool, Debug *log.Logger) {
 	mI, err := s.MysqlIsRun(i)
 	if err != nil {
@@ -348,27 +344,25 @@ func (s *Setting) go_exec(i int, sqlStr string, reLIid chan int64, reRA chan int
 // ===============
 //
 //	根据 *Setting 从数据库集中调用单行SQL指令
-//	sqlStr		string			SQL指令
-//	Debug		*log.Logger		调试输出
-//	options		[]IsShowPrintO		配置
-//		IsShowPrint	bool			是否输出到控制台
-//
-//	返回值1		int64			插入的行数
-//	返回值2		int64			影响的行数
-//	返回值3		[]error			错误信息
+//	sqlStr		string			"SQL指令"
+//	Debug		*log.Logger		"调试输出"
+//	options		[]IsShowPrintO		"配置"
+//		IsShowPrint	bool			"是否输出到控制台"
+//	return 1	int64			"插入的行数"
+//	return 2	int64			"影响的行数"
+//	return 3	[]error			"错误信息"
 //
 // ===============
 //
 //	According to *Setting, call single row SQL instruction from database set
-//	sqlStr		string			SQL instruction
-//	Debug		*log.Logger		Debug output
-//	options		[]IsShowPrintO		Configuration
-//	isShowPrint	bool			Whether to output
-//											to the console
-//
-//	return 1	int64			Number of rows inserted
-//	return 2	int64			Number of rows affected
-//	return 3	[]error			Error message
+//	sqlStr		string			"SQL instruction"
+//	Debug		*log.Logger		"Debug output"
+//	options		[]IsShowPrintO		"Configuration"
+//	isShowPrint	bool			"Whether to output
+//											to the console"
+//	return 1	int64			"Number of rows inserted"
+//	return 2	int64			"Number of rows affected"
+//	return 3	[]error			"Error message"
 func (s *MysqlDB) ExecCMD(sqlStr string, Debug *log.Logger, options ...IsShowPrintO) (int64, int64, error) {
 	option := &Option{
 		IsShowPrint: false,

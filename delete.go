@@ -10,30 +10,30 @@ import (
 // ===============
 //
 //	自动根据 *Setting 向下一个数据库中的指定表删除数据
-//	table			string		表名
-//	forKey			string		键名
-//	ids			[]string	值
-//	Debug			*log.Logger	调试输出
-//	options			[]IsPrimaryKeyO	配置
-//		IsPrimaryKey	bool		是否为主键
-//		IsShowPrint		bool		是否输出到控制台
-//
-//	返回值1			[]int64		删除的行数
-//	返回值2			[]error		错误信息
+//	table			string		"表名"
+//	forKey			string		"键名"
+//	ids			[]string	"值"
+//	Debug			*log.Logger	"调试输出"
+//	options			[]IsPrimaryKeyO	"配置"
+//		IsPrimaryKey	bool		"是否为主键"
+//		IsShowPrint		bool		"是否输出到控制台"
+//	return 1		[]int64		"删除的行数"
+//	return 2		[]error		"错误信息"
 //
 // ===============
 //
 //	Automatically delete data from the specified table in the next database according to *Setting
-//	table			string		table name
-//	forKey			string		key name
-//	ids			[]string	value
-//	Debug			*log.Logger	debug output
-//	options			[]IsPrimaryKeyO	Configuration
-//		IsPrimaryKey	bool		Whether it is a primary key
-//		IsShowPrint		bool		Whether to output to the console
-//
-//	return 1		[]int64		Number of rows deleted
-//	return 2		[]error		Error message
+//	table			string		"table name"
+//	forKey			string		"key name"
+//	ids			[]string	"value"
+//	Debug			*log.Logger	"debug output"
+//	options			[]IsPrimaryKeyO	"Configuration"
+//		IsPrimaryKey	bool		"Whether it is a primary
+//											key"
+//		IsShowPrint		bool		"Whether to output to the
+//											console"
+//	return 1		[]int64		"Number of rows deleted"
+//	return 2		[]error		"Error message"
 func (s *Setting) Delete(table string, forKey string, ids []string, Debug *log.Logger, options ...IsPrimaryKeyO) ([]int64, []error) {
 	option := &Option{
 		IsPrimaryKey: true,
@@ -83,6 +83,11 @@ func (s *Setting) Delete(table string, forKey string, ids []string, Debug *log.L
 				where += ","
 			}
 			where += "'" + idList[sqlI][i] + "'"
+		}
+		if errStr := CheckString(where); len(errStr) > 0 {
+			errs[sqlI] = fmt.Errorf("SQL injection: %s", where)
+			wg.Done()
+			continue
 		}
 		sqlStr += where + ");"
 		if option.IsShowPrint {
