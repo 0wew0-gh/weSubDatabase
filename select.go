@@ -438,16 +438,17 @@ func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logge
 		}
 		if id > maxID {
 			maxID = id
-		}
-		db, err := strconv.Atoi(v["db"])
-		if err != nil {
-			return -1, 1, err
-		}
-		if db > dbI {
-			dbI = db
+			db, err := strconv.Atoi(v["db"])
+			if err != nil {
+				return -1, 1, err
+			}
+			dbI = db + 1
 		}
 	}
 	dbI += 1
+	if dbI > len(s.SqlConfigs) {
+		dbI = 1
+	}
 	maxID += 1
 	// 防止连接不上的数据库中存在最大值
 	for i := 0; i < len(s.ConnectFailTime); i++ {

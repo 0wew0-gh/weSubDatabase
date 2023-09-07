@@ -39,10 +39,17 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 	}
 	sqlKeys := ""
 	sqlValList := []string{}
-	sqlValList2 := []string{}
 	var isContinues []bool
 	for i := 0; i < len(s.ConnectFailTime); i++ {
 		isContinues = append(isContinues, s.IsRetryConnect(i))
+	}
+	var (
+		inserts []int64
+		errs    []error
+	)
+	for i := 0; i < len(isContinues); i++ {
+		inserts = append(inserts, -1)
+		errs = append(errs, nil)
 	}
 	for i := 0; i < len(values); i++ {
 		val := values[i]
@@ -50,14 +57,15 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 			return nil, []error{fmt.Errorf("values[%d]与keys 对象数目不一致", i)}
 		}
 		sqlVal := ""
-		sqlVal2 := ""
 		for i := 0; i < len(val); i++ {
+			if errStr := CheckString(val[i]); len(errStr) > 0 {
+				errs = append(errs, fmt.Errorf("SQL injection: %s ==> %s", val[i], errStr))
+				continue
+			}
 			if sqlVal != "" {
 				sqlVal += ","
-				sqlVal2 += ","
 			}
 			sqlVal += "'" + val[i] + "'"
-			sqlVal2 += val[i]
 		}
 		sqlI := s.NextDBID - 1
 		s.NextDBID++
@@ -72,14 +80,12 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 			temp := sqlI - len(sqlValList) + 1
 			for i := 0; i < temp; i++ {
 				sqlValList = append(sqlValList, "(")
-				sqlValList2 = append(sqlValList2, "(")
 			}
 		}
 		if sqlI <= s.DBMaxNum && sqlValList[sqlI] != "(" {
 			sqlValList[sqlI] += ",("
 		}
 		sqlValList[sqlI] += sqlVal + ")"
-		sqlValList2[sqlI] += sqlVal2 + ")"
 	}
 	for i := 0; i < len(keys); i++ {
 		if sqlKeys != "" {
@@ -88,14 +94,6 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 		sqlKeys += "`" + keys[i] + "`"
 	}
 
-	var (
-		inserts []int64
-		errs    []error
-	)
-	for i := 0; i < len(sqlValList); i++ {
-		inserts = append(inserts, -1)
-		errs = append(errs, nil)
-	}
 	var wg *sync.WaitGroup = new(sync.WaitGroup)
 	for i := 0; i < len(sqlValList); i++ {
 		if sqlValList[i] == "(" {
@@ -106,11 +104,6 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 		}
 		wg.Add(1)
 		sqlStr := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES %s", table, sqlKeys, sqlValList[i])
-		if errStr := CheckString(sqlValList2[i]); len(errStr) > 0 {
-			errs[i] = fmt.Errorf("SQL injection: %s", sqlValList2[i])
-			wg.Done()
-			continue
-		}
 		reInsert := make(chan int64)
 		reErr := make(chan error)
 		go s.go_add(i, sqlStr, reInsert, reErr, option.IsShowPrint, Debug)
