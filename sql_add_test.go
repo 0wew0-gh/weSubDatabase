@@ -26,7 +26,6 @@ func TestSQLAdd(t *testing.T) {
 	nextDBID, nextID, err := sqlSetting.SelectLastID("data", "id", nil)
 	if err != nil {
 		t.Error("MySQL Link failed:", err)
-
 	}
 	sqlSetting.NextDBID = nextDBID
 	println("NextDBID:", sqlSetting.NextDBID, "maxID:", nextID)

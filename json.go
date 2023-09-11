@@ -103,10 +103,10 @@ func (w *wJson) String() string {
 }
 
 type Config struct {
-	MysqlName string        `json:"mysql_name"`
-	Mysql     []SQLConfig   `json:"mysql"`
-	MaxLink   MaxLinkNumber `json:"MaxLinkNumber"`
-	Contrast  Contrast      `json:"contrast"`
+	Mysql    []SQLConfig   `json:"mysql"`
+	Redis    []RedisConfig `json:"redis"`
+	MaxLink  MaxLinkNumber `json:"maxLinkNumber"`
+	Contrast Contrast      `json:"contrast"`
 }
 
 type SQLConfig struct {
@@ -115,6 +115,13 @@ type SQLConfig struct {
 	Address  string `json:"mysql_addr"`
 	Port     string `json:"mysql_port"`
 	DB       string `json:"mysql_db"`
+}
+
+type RedisConfig struct {
+	Addr     string `json:"redis_addr"`
+	Port     string `json:"redis_port"`
+	Password string `json:"redis_pwd"`
+	MaxDB    int    `json:"redis_max_db"`
 }
 
 type MaxLinkNumber struct {

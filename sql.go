@@ -6,29 +6,6 @@ import (
 	"time"
 )
 
-type Option struct {
-	//	等待次数
-	//
-	//	Number of waits
-	WaitCount int
-	//	每次等待时间，单位毫秒
-	//
-	//	Waiting time per time, in milliseconds
-	WaitTime int
-	//	是否为主键
-	//
-	//	Whether it is a primary key
-	IsPrimaryKey bool
-	//	重试时间
-	//
-	//	Retry time
-	RetryTime int
-	//	是否输出到控制台
-	//
-	//	Whether to output to the console
-	IsShowPrint bool
-}
-
 // 连接MySQL时的可选配置
 //
 // Optional configuration when connecting to MySQL
