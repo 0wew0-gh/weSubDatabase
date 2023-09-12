@@ -84,11 +84,6 @@ func (s *Setting) Delete(table string, forKey string, ids []string, Debug *log.L
 			}
 			where += "'" + idList[sqlI][i] + "'"
 		}
-		if errStr := CheckString(where); len(errStr) > 0 {
-			errs[sqlI] = fmt.Errorf("SQL injection: %s", where)
-			wg.Done()
-			continue
-		}
 		sqlStr += where + ");"
 		if option.IsShowPrint {
 			fmt.Println("[", s.SqlConfigs[sqlI].DB, "]:", sqlStr)

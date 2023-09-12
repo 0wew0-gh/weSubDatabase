@@ -129,11 +129,6 @@ func (s *Setting) Update(table string, key []string, value [][]string, forKey st
 			}
 			idStr += "'" + idList[sqlI][i] + "'"
 		}
-		if errStr := CheckString(idStr); len(errStr) > 0 {
-			errs[sqlI] = fmt.Errorf("SQL injection: %s", idStr)
-			wg.Done()
-			continue
-		}
 		sqlStr += setStr + " WHERE `" + forKey + "` IN (" + idStr + ")"
 		if forKey == "" {
 			wg.Done()

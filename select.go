@@ -219,9 +219,6 @@ func (s *Setting) Query(table string, from string, primaryKey string, where stri
 	}
 	sqlStr += "`" + table + "`"
 	if where != "" {
-		if errStr := CheckString(where); len(errStr) > 0 {
-			return nil, []error{fmt.Errorf("SQL injection: %s", where)}
-		}
 		sqlStr += " WHERE " + where
 	}
 	orderKey := "id"
