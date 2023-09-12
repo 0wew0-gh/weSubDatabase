@@ -53,7 +53,7 @@ func OLRedisWaitTime(WaitTime int) RedisO {
 //
 //	Set whether to output to the console
 //	IsShowPrint	bool	"Whether to output to the console"
-func OLRedisIsShowPrint(IsShowPrint bool) LinkSQLO {
+func OLRedisIsShowPrint(IsShowPrint bool) RedisO {
 	return func(o *Option) {
 		o.IsShowPrint = IsShowPrint
 	}
@@ -68,7 +68,7 @@ func OLRedisIsShowPrint(IsShowPrint bool) LinkSQLO {
 //
 //	Delete this entry after the query is complete
 //	IsDelete	bool	"Whether to delete"
-func OLRedisIsDelete(IsDelete bool) LinkSQLO {
+func OLRedisIsDelete(IsDelete bool) RedisO {
 	return func(o *Option) {
 		o.IsDelete = IsDelete
 	}
@@ -83,7 +83,7 @@ func OLRedisIsDelete(IsDelete bool) LinkSQLO {
 //
 //	Auto delete time, in seconds
 //	AutoDeleteTime	int	"Auto delete time, in seconds"
-func OLRedisAutoDeleteTime(AutoDeleteTime int) LinkSQLO {
+func OLRedisAutoDeleteTime(AutoDeleteTime int) RedisO {
 	return func(o *Option) {
 		o.AutoDeleteTime = AutoDeleteTime
 	}
@@ -98,7 +98,7 @@ func OLRedisAutoDeleteTime(AutoDeleteTime int) LinkSQLO {
 //
 //	Whether to stop when an error occurs
 //	IsErrorStop	bool	"Whether to stop when an error occurs"
-func OLRedisIsErrorStop(IsErrorStop bool) LinkSQLO {
+func OLRedisIsErrorStop(IsErrorStop bool) RedisO {
 	return func(o *Option) {
 		o.IsErrorStop = IsErrorStop
 	}
