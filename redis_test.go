@@ -12,7 +12,12 @@ func TestRedis(t *testing.T) {
 		return
 	}
 	println("Redis Link test")
-	rI, err := setting.RedisIsRun(0, 1)
+
+	setting.NextRedisDBID++
+	if setting.NextRedisDBID >= setting.RedisMaxNum {
+		setting.NextRedisDBID = 0
+	}
+	rI, err := setting.RedisIsRun(setting.NextRedisDBID, 1)
 	if err != nil {
 		t.Error("Redis Link failed:", err)
 		return

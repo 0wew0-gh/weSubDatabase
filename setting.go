@@ -198,13 +198,13 @@ func New(configString string, options ...RetryTimeO) (*Setting, error) {
 	}
 	setting.SqlConfigs = config.Mysql
 	// setting.DBName = config.MysqlName
-	setting.NextDBID = 1
+	setting.NextDBID = 0
 	setting.DBMaxNum = len(setting.SqlConfigs)
 	setting.LinkNum = 0
 	setting.MaxLink = config.MaxLink.MySQL
 
 	setting.RedisConfigs = config.Redis
-	setting.NextRedisDBID = 1
+	setting.NextRedisDBID = 0
 	setting.RedisMaxNum = len(setting.RedisConfigs)
 	setting.RedisLinkNum = 0
 	setting.RedisMaxLink = config.MaxLink.Redis

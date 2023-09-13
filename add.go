@@ -67,10 +67,10 @@ func (s *Setting) Add(table string, keys []string, values [][]string, Debug *log
 			}
 			sqlVal += "'" + val[i] + "'"
 		}
-		sqlI := s.NextDBID - 1
+		sqlI := s.NextDBID
 		s.NextDBID++
-		if s.NextDBID > s.DBMaxNum {
-			s.NextDBID = 1
+		if s.NextDBID >= s.DBMaxNum {
+			s.NextDBID = 0
 		}
 		if !isContinues[sqlI] {
 			i--
