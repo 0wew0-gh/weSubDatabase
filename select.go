@@ -439,12 +439,12 @@ func (s *Setting) SelectLastID(table string, primaryKey string, Debug *log.Logge
 			if err != nil {
 				return -1, 1, err
 			}
-			dbI = db + 1
+			dbI = db
 		}
 	}
 	dbI += 1
-	if dbI > len(s.SqlConfigs) {
-		dbI = 1
+	if dbI >= len(s.SqlConfigs) {
+		dbI = 0
 	}
 	maxID += 1
 	// 防止连接不上的数据库中存在最大值
