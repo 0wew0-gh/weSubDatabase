@@ -10,7 +10,7 @@ import (
 
 func TestT(t *testing.T) {
 	nextDBID := 3
-	isContinues := []bool{true, false, true, true}
+	isContinues := []bool{false, true, true, false}
 
 	limitList := []string{}
 	limit := "1, 10"
@@ -27,7 +27,10 @@ func TestT(t *testing.T) {
 			limitList = toLimit(nextDBID, "", i, isContinues)
 		}
 	}
-	fmt.Println(limitList)
+
+	for i := 0; i < len(limitList); i++ {
+		fmt.Println(i, limitList[i])
+	}
 }
 
 func TestSQLforID(t *testing.T) {

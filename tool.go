@@ -149,10 +149,6 @@ func toLimit(nextDBID int, pageNumber string, limit int, isContinues []bool) []s
 			linkDBCount += 1
 		}
 	}
-	if nextDBID > linkDBCount {
-		return nil
-	}
-	nextDBID -= 1
 	maxDBNum := len(isContinues)
 	f := math.Floor(float64(limit) / float64(linkDBCount))
 	remainder := limit % linkDBCount
