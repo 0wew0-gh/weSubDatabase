@@ -52,3 +52,27 @@ func TestSQLAdd(t *testing.T) {
 	fmt.Println("inserts:", inserts)
 	fmt.Println("MySQLDB array:", sqlSetting.MySQLDB)
 }
+
+func TestSQLAddForPrimary(t *testing.T) {
+	sqlSetting, err := New(testJsonStr)
+	if err != nil {
+		t.Error("initialization failed:", err)
+		return
+	}
+
+	println("MySQL Link test")
+	mI, err := sqlSetting.MysqlIsRun(0)
+	if err != nil {
+		t.Error("MySQL Link failed:", err)
+		return
+	}
+	sqlSetting.MysqlClose(mI)
+	println("MySQL test link success")
+
+	inserts, errs := sqlSetting.AddForPrimary("data", []string{"ZXyvqh", "ZXyvri", "ZXyvsf", "ZXyvtg", "ZXyvuh", "ZXyvvi", "ZXywmf", "ZXywng", "ZXywoh", "ZXywpi"}, []string{"id", "data"}, [][]string{{"1", "t1"}, {"2", "t2"}, {"3", "t3"}, {"4", "t4"}, {"5", "t5"}, {"6", "t6"}, {"7", "t7"}, {"8", "t8"}, {"9", "t9"}, {"10", "t10"}}, nil, OIsShowPrint(true))
+	if errs != nil {
+		fmt.Println(errs)
+		return
+	}
+	fmt.Println("inserts", inserts)
+}

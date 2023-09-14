@@ -83,8 +83,7 @@ func TestSQLQuery(t *testing.T) {
 	}
 	println("NextAddDBID:", nextDBI, "maxID:", maxID)
 
-	println("MySQL Link test")
-	qd, errs := sqlSetting.Query("data", "*", "id", "`time` BETWEEN '2023-07-14 13:54:48' and '2023-07-14 13:54:55'", "`id` DESC", "10", nil, OIsShowPrint(true))
+	qd, errs := sqlSetting.Query("data", "*", "id", "`time` BETWEEN '2023-09-12 13:54:48' and '2023-09-13 11:21:55'", "`id` DESC", "10", nil, OIsShowPrint(true))
 	if errs != nil {
 		t.Error("MySQL QueryCMD failed:", errs)
 	}
@@ -96,7 +95,7 @@ func TestSQLQuery(t *testing.T) {
 		if err == nil {
 			dbName = sqlSetting.SqlConfigs[DBi].DB
 		}
-		t.Log("=====>", dbName, reStr, i, "<=====")
+		println("=====>", id, dbName, reStr, i, "<=====")
 	}
 }
 

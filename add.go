@@ -3,9 +3,148 @@ package weSubDatabase
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"sync"
 	"time"
 )
+
+// ===============
+//
+//	根据encryptedKey计算Value值的数据库下标，并根据下标向表中插入
+//	table		string		"表名"
+//	encryptedKey	[]string	"根据此项计算value应该插入哪个库中"
+//	keys		[]string	"键名"
+//	values		[][]string	"值"
+//	Debug		*log.Logger	"调试输出"
+//	options		[]IsShowPrintO	"配置"
+//		IsShowPrint	bool		"是否输出到控制台"
+//	return 1	[]int64		"插入的行数"
+//	return 2	[]error		"错误信息"
+//
+// ===============
+//
+//	Calculate the database subscript of the Value value based on the encryptedKey, and insert it into the table based on the subscript.
+//	table		string		"table name"
+//	encryptedKey	[]string	"Calculate which library the value should be inserted into based on this item"
+//	keys		[]string	"key name"
+//	values		[][]string	"value"
+//	Debug		*log.Logger	"debug output"
+//	options		[]IsShowPrintO	"Configuration"
+//		IsShowPrint	bool		"Whether to output to the console"
+//	return 1	[]int64		"Number of rows inserted"
+//	return 2	[]error		"Error message"
+func (s *Setting) AddForPrimary(table string, encryptedKey []string, keys []string, value [][]string, Debug *log.Logger, options ...IsShowPrintO) ([]int64, []error) {
+	option := &Option{
+		IsShowPrint: false,
+	}
+	for _, o := range options {
+		o(option)
+	}
+	if len(encryptedKey) != len(value) {
+		return nil, []error{fmt.Errorf("the `encryptedKey` and `value` lengths are inconsistent")}
+	}
+
+	sortList := [][]int{}
+	for i := 0; i < len(s.SqlConfigs); i++ {
+		sortList = append(sortList, []int{})
+	}
+
+	for i, v := range encryptedKey {
+		_, dbIstr, err := s.SEKey.Decrypt(v)
+		if err != nil {
+			return nil, []error{fmt.Errorf("decrype err: %v", err)}
+		}
+		dbI, err := strconv.Atoi(dbIstr)
+		if err != nil {
+			return nil, []error{fmt.Errorf("dbI string to int err: %v", err)}
+		}
+		sortList[dbI] = append(sortList[dbI], i)
+	}
+
+	sqlKeys := ""
+	sqlValList := []string{}
+	var isContinues []bool
+	for i := 0; i < len(s.ConnectFailTime); i++ {
+		isContinues = append(isContinues, s.IsRetryConnect(i))
+	}
+	var (
+		inserts []int64
+		errs    []error
+	)
+	for i := 0; i < len(isContinues); i++ {
+		inserts = append(inserts, -1)
+		errs = append(errs, nil)
+	}
+	for _, v := range keys {
+		if sqlKeys != "" {
+			sqlKeys += ","
+		}
+		sqlKeys += "`" + v + "`"
+	}
+
+	for _, v := range sortList {
+		sqlval := ""
+		for _, vv := range v {
+			sqlv := ""
+			for _, vvv := range value[vv] {
+				if sqlv != "" {
+					sqlv += ","
+				}
+				sqlv += "'" + vvv + "'"
+			}
+			if sqlval != "" {
+				sqlval += ","
+			}
+			sqlval += "(" + sqlv + ")"
+		}
+		sqlValList = append(sqlValList, sqlval)
+	}
+
+	var wg *sync.WaitGroup = new(sync.WaitGroup)
+	for i := 0; i < len(sqlValList); i++ {
+		if sqlValList[i] == "(" {
+			continue
+		}
+		if !isContinues[i] {
+			continue
+		}
+		wg.Add(1)
+		sqlStr := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES %s", table, sqlKeys, sqlValList[i])
+		reInsert := make(chan int64)
+		reErr := make(chan error)
+		go s.go_add(i, sqlStr, reInsert, reErr, option.IsShowPrint, Debug)
+		rI := false
+		rE := false
+		for {
+			select {
+			case insert := <-reInsert:
+				if !rI {
+					inserts[i] = insert
+					rI = true
+					close(reInsert)
+				}
+			case err := <-reErr:
+				if !rE {
+					errs[i] = err
+					rE = true
+					close(reErr)
+				}
+			}
+			if rI && rE {
+				break
+			}
+			time.Sleep(time.Millisecond * 50)
+		}
+		wg.Done()
+	}
+	wg.Wait()
+	for _, v := range errs {
+		if v != nil {
+			return inserts, errs
+		}
+	}
+	return inserts, nil
+}
 
 // ===============
 //
